@@ -1,0 +1,19 @@
+{
+  "name": "clubhouse",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ClubHouse - centralized event calendar for McGill student clubs (ECSE 428 Team 5)",
+  "workspaces": [
+    "backend",
+    "app",
+    "features"
+  ],
+  "scripts": {
+    "build": "npm run compile && npm test && npm run test:acceptance",
+    "compile": "npm run build -w backend && npm run typecheck -w app",
+    "typecheck": "npm run typecheck -w backend && npm run typecheck -w app && npm run typecheck -w features",
+    "test": "npm run test -w backend",
+    "test:acceptance": "npm run test -w features",
+    "app": "npm run start -w app"
+  }
+}
