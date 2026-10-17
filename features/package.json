@@ -1,0 +1,14 @@
+{
+  "name": "@clubhouse/features",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gherkin feature files and Cucumber-js step definitions for the ClubHouse acceptance tests",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "cucumber-js --require ./step_definitions"
+  },
+  "dependencies": {
+    "@clubhouse/backend": "0.1.0",
+    "@cucumber/cucumber": "^9.0.0"
+  }
+}
