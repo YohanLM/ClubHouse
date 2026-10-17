@@ -1,8 +1,9 @@
 import { Before, AfterAll } from '@cucumber/cucumber';
-import { prisma } from '../../backend/src/prisma';
+import { prisma } from '../../backend/src/prisma.ts';
 
 Before(async function () {
-  // Reset test data between scenarios so each scenario starts with a clean DB
+  await prisma.event.deleteMany();
+  await prisma.club.deleteMany();
   await prisma.account.deleteMany();
 });
 
