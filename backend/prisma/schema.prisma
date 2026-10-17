@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  CLUB_OWNER
+  ADMINISTRATOR
+}
+
+enum ClubStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum EventStatus {
+  SCHEDULED
+  CANCELLED
+}
+
+model Account {
+  id                  Int       @id @default(autoincrement())
+  name                String
+  email               String    @unique // always stored lowercase
+  passwordHash        String
+  role                Role      @default(USER)
+  faculty             String?
+  studyYear           String?
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime  @default(now())
+
+  ownedClubs Club[] @relation("ClubOwner")
+}
+
+model Club {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  category  String
+  status    ClubStatus @default(ACTIVE)
+  ownerId   Int
+  createdAt DateTime   @default(now())
+
+  owner  Account @relation("ClubOwner", fields: [ownerId], references: [id])
+  events Event[]
+
+  @@index([ownerId])
+}
+
+model Event {
+  id        Int         @id @default(autoincrement())
+  clubId    Int
+  title     String
+  category  String
+  date      String // "YYYY-MM-DD", Montreal local date
+  startTime String // "HH:mm", 24 h
+  endTime   String // "HH:mm", 24 h, must be after startTime
+  location  String
+  capacity  Int?
+  status    EventStatus @default(SCHEDULED)
+  createdAt DateTime    @default(now())
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([clubId, date])
+}

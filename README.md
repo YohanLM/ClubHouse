@@ -18,6 +18,8 @@ Requires Node 22 (see `.nvmrc`).
 npm install
 ```
 
+Prisma uses `backend/prisma/.env` for the local SQLite database. Acceptance tests override it with a separate `test.db` and clear events, clubs, and accounts before each scenario.
+
 ## Commands (run from the repo root)
 
 | Command                   | What it does |
