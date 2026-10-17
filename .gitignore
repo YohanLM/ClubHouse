@@ -1,0 +1,18 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+coverage/
+*.tsbuildinfo
+
+# local databases and env (Prisma/SQLite added in T006)
+*.db
+*.db-journal
+.env
+.env*.local
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
