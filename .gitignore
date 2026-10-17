@@ -11,6 +11,7 @@ coverage/
 *.db-journal
 .env
 .env*.local
+!backend/prisma/.env
 
 # editors / OS
 .vscode/

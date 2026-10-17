@@ -8,12 +8,18 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "jest --passWithNoTests"
+    "test": "jest --passWithNoTests",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev --name init"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.2.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^26.6.5",
     "jest": "^30.5.2",
+    "prisma": "^6.2.0",
     "ts-jest": "^29.4.14",
     "typescript": "~6.0.3"
   }
