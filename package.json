@@ -12,8 +12,15 @@
     "build": "npm run compile && npm test && npm run test:acceptance",
     "compile": "npm run build -w backend && npm run typecheck -w app",
     "typecheck": "npm run typecheck -w backend && npm run typecheck -w app && npm run typecheck -w features",
-    "test": "npm run test -w backend",
+    "test": "npm run test -w backend && npm run test:bdd",
     "test:acceptance": "npm run test -w features",
+    "test:bdd": "cucumber-js",
     "app": "npm run start -w app"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^13.3.0",
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   }
 }
