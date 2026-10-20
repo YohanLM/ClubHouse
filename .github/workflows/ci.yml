@@ -59,3 +59,11 @@ jobs:
 
       - name: Run ${{ matrix.check }}
         run: ${{ matrix.command }}
+
+      - name: Upload acceptance reports
+        if: always() && matrix.check == 'Acceptance tests'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: acceptance-reports
+          path: reports/
+          if-no-files-found: warn

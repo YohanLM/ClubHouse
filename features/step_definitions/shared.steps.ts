@@ -93,6 +93,7 @@ Given(
   },
 );
 
-Then('the message {string} is issued', function (this: ClubHouseWorld, expected: string) {
+Then('the message {string} is issued', async function (this: ClubHouseWorld, expected: string) {
+  await this.submit();
   assert.equal(this.message, expected);
 });

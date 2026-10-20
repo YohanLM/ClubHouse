@@ -4,6 +4,7 @@ node_modules/
 # build output
 dist/
 coverage/
+reports/
 *.tsbuildinfo
 
 # local databases and env (Prisma/SQLite added in T006)
