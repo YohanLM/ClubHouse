@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: ${{ matrix.check }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: file:./test.db
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - check: Build and types
+            command: npm run compile && npm run typecheck
+          - check: Unit tests
+            command: npm run test --workspace=backend -- --ci --passWithNoTests=false
+          - check: Acceptance tests
+            command: npm run test:acceptance
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node from the project version file
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Validate the database schema
+        run: npm exec --workspace=backend -- prisma validate
+
+      - name: Generate the database client
+        run: npm run prisma:generate --workspace=backend
+
+      - name: Create the isolated test database from migrations
+        run: |
+          node -e "const fs = require('node:fs'); fs.closeSync(fs.openSync('backend/prisma/test.db', 'a'));"
+          npm exec --workspace=backend -- prisma migrate deploy
+
+      - name: Run ${{ matrix.check }}
+        run: ${{ matrix.command }}
+
+      - name: Upload acceptance reports
+        if: always() && matrix.check == 'Acceptance tests'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: acceptance-reports
+          path: reports/
+          if-no-files-found: warn
