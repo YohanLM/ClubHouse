@@ -3,3 +3,4 @@
 // lives in src/services/ and is re-exported here, so the acceptance-test
 // step definitions and the app import from '@clubhouse/backend'.
 export * from './services/registrationValidation';
+export * from './services/createClub';
