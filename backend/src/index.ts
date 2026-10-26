@@ -4,3 +4,4 @@
 // step definitions and the app import from '@clubhouse/backend'.
 export * from './services/registrationValidation';
 export * from './services/createClub';
+export * from './services/login';
