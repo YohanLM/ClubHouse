@@ -13,7 +13,8 @@
     "prisma:migrate": "prisma migrate dev --name init"
   },
   "dependencies": {
-    "@prisma/client": "^6.2.0"
+    "@prisma/client": "^6.2.0",
+    "bcryptjs": "^3.0.3"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
