@@ -5,7 +5,7 @@
   "description": "Gherkin feature files and Cucumber-js step definitions for the ClubHouse acceptance tests",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "cross-env DATABASE_URL=file:./test.db prisma db push --schema=../backend/prisma/schema.prisma && cross-env DATABASE_URL=file:./test.db cucumber-js --import tsx --import \"support/**/*.ts\" --import \"step_definitions/**/*.ts\" \"**/*.feature\""
+    "test": "cross-env DATABASE_URL=file:./test.db prisma db push --schema=../backend/prisma/schema.prisma && cross-env DATABASE_URL=file:./test.db NODE_OPTIONS=\"--import tsx\" cucumber-js --import \"support/**/*.ts\" --import \"step_definitions/**/*.ts\" \"**/*.feature\""
   },
   "dependencies": {
     "@clubhouse/backend": "0.1.0",
