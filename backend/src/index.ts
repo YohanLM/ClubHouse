@@ -6,3 +6,4 @@ export * from './services/registrationValidation';
 export * from './services/createClub';
 export * from './services/listClubs';
 export * from './services/login';
+export * from './services/createEvent';
