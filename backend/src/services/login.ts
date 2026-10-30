@@ -5,7 +5,7 @@
 // attempts lock the account temporarily.
 import { PrismaClient, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { normalizeEmail } from './registrationValidation.ts';
+import { normalizeEmail } from './registrationValidation';
 
 export const LOGIN_ERRORS = {
   emailRequired: 'Email is required',
