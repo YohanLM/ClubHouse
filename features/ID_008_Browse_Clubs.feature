@@ -12,7 +12,7 @@ Feature: Browse Clubs
       | Ski Club      | Sports   | Inactive |
       | Debate Union  | Academic | Active   |
 
-  Scenario: Browse the list of clubs as a logged-in user (Normal Flow)
+  Scenario: ID_008_Browse the list of clubs as a logged-in user (Normal Flow)
     Given "alice.tremblay@mail.mcgill.ca" is logged in with role "User"
     When the user requests the list of clubs
     Then the following clubs are listed in alphabetical order:
@@ -21,7 +21,7 @@ Feature: Browse Clubs
       | Jazz Society  | Arts     |
       | Robotics Club | Academic |
 
-  Scenario Outline: Browse the list of clubs with a different role (Alternate Flow)
+  Scenario Outline: ID_008_Browse the list of clubs with a different role (Alternate Flow)
     Given "<Email>" is logged in with role "<Role>"
     When the user requests the list of clubs
     Then 3 clubs are listed
@@ -32,7 +32,7 @@ Feature: Browse Clubs
       | dana.lee@mail.mcgill.ca   | Club Owner    |
       | admin.clubhouse@mcgill.ca | Administrator |
 
-  Scenario: Attempt to browse the list of clubs without being logged in (Error Flow)
+  Scenario: ID_008_Attempt to browse the list of clubs without being logged in (Error Flow)
     Given no user is logged in
     When the user requests the list of clubs
     Then no clubs are listed
