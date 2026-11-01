@@ -30,6 +30,24 @@ Prisma uses `backend/prisma/.env` for the local SQLite database. Acceptance test
 | `npm test`                | Runs the backend unit tests |
 | `npm run test:acceptance` | Runs the acceptance tests (Cucumber, set up in T003) |
 | `npm run app`             | Starts the Expo dev server |
+| `npm run db:setup`        | Creates your local database and adds demo accounts and clubs |
+| `npm run api`             | Starts the HTTP API used by the app (http://localhost:3000) |
+
+## Running the API
+
+The app cannot use Prisma directly, so it calls the services through a small HTTP API (`backend/src/api/`).
+
+```bash
+npm run db:setup   # once: local database + demo data
+npm run api
+```
+
+- Demo accounts (password `Passw0rd!23`): `admin.clubhouse@mcgill.ca` (Administrator), `alice.tremblay@mail.mcgill.ca` (User), `dana.lee@mail.mcgill.ca` (Club Owner, owns the demo clubs).
+- `POST /login` with `{ "email", "password" }` returns `{ token, session }`. Send the token in an `Authorization: Bearer <token>` header in the next requests.
+- `GET /clubs` returns `{ clubs }` (active clubs in alphabetical order), or `401 { message: "Login required" }`.
+- Errors are returned as `{ message }` with a 4xx status, using the messages of the feature files.
+- Sessions are kept in memory: log in again after restarting the API.
+- To add a route for another service, add it in `backend/src/api/app.ts` and test it in `backend/tests/api.test.ts`.
 
 ## Running the tests
 
