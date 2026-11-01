@@ -14,6 +14,8 @@
     "typecheck": "npm run typecheck -w backend && npm run typecheck -w app && npm run typecheck -w features",
     "test": "npm run test -w backend",
     "test:acceptance": "npm run test -w features",
-    "app": "npm run start -w app"
+    "app": "npm run start -w app",
+    "api": "npm run api -w backend",
+    "db:setup": "npm run db:setup -w backend"
   }
 }
