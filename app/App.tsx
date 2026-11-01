@@ -7,8 +7,11 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
+
+import CreateClubScreen from './CreateClubScreen';
 import CreateEventForm, { EventData } from './CreateEventForm';
 
 const API = 'http://localhost:3000';
@@ -24,6 +27,8 @@ type Session = {
   role: string;
 };
 
+type Screen = 'club' | 'event';
+
 async function readResponse(response: Response) {
   const data = await response.json();
 
@@ -35,6 +40,8 @@ async function readResponse(response: Response) {
 }
 
 export default function App() {
+  const [screen, setScreen] = useState<Screen>('event');
+
   const [email, setEmail] = useState(
     'dana.lee@mail.mcgill.ca'
   );
@@ -51,7 +58,9 @@ export default function App() {
     try {
       const response = await fetch(`${API}/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ email, password }),
       });
 
@@ -97,63 +106,138 @@ export default function App() {
     await readResponse(response);
   }
 
-  if (token) {
-    return (
-      <View style={{ flex: 1 }}>
-        <View style={styles.logout}>
-          <Button
-            title="Log Out"
-            onPress={() => {
-              setToken('');
-              setClubs([]);
-            }}
+  function handleLogout() {
+    setToken('');
+    setClubs([]);
+    setError('');
+  }
+
+  function renderEventScreen() {
+    if (token) {
+      return (
+        <View style={styles.flex}>
+          <View style={styles.logout}>
+            <Button title="Log Out" onPress={handleLogout} />
+          </View>
+
+          <CreateEventForm
+            clubs={clubs}
+            onSubmit={handleCreateEvent}
           />
         </View>
+      );
+    }
 
-        <CreateEventForm
-          clubs={clubs}
-          onSubmit={handleCreateEvent}
+    return (
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>ClubHouse</Text>
+        <Text style={styles.subtitle}>Club Owner Login</Text>
+
+        <Text>Email</Text>
+        <TextInput
+          style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
         />
-      </View>
+
+        <Text>Password</Text>
+        <TextInput
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+
+        {error ? (
+          <Text style={styles.error}>{error}</Text>
+        ) : null}
+
+        {loading ? (
+          <ActivityIndicator />
+        ) : (
+          <Button title="Log In" onPress={handleLogin} />
+        )}
+      </ScrollView>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>ClubHouse</Text>
-      <Text style={styles.subtitle}>Club Owner Login</Text>
+    <View style={styles.flex}>
+      <View style={styles.navigation}>
+        <TouchableOpacity
+          style={[
+            styles.navButton,
+            screen === 'event' && styles.activeButton,
+          ]}
+          onPress={() => setScreen('event')}
+        >
+          <Text
+            style={[
+              styles.navText,
+              screen === 'event' && styles.activeText,
+            ]}
+          >
+            Create Event
+          </Text>
+        </TouchableOpacity>
 
-      <Text>Email</Text>
-      <TextInput
-        style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
+        <TouchableOpacity
+          style={[
+            styles.navButton,
+            screen === 'club' && styles.activeButton,
+          ]}
+          onPress={() => setScreen('club')}
+        >
+          <Text
+            style={[
+              styles.navText,
+              screen === 'club' && styles.activeText,
+            ]}
+          >
+            Create Club (Admin UI)
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-      <Text>Password</Text>
-      <TextInput
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-
-      {error ? (
-        <Text style={styles.error}>{error}</Text>
-      ) : null}
-
-      {loading ? (
-        <ActivityIndicator />
-      ) : (
-        <Button title="Log In" onPress={handleLogin} />
-      )}
-    </ScrollView>
+      <View style={styles.flex}>
+        {screen === 'club'
+          ? <CreateClubScreen />
+          : renderEventScreen()}
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+  navigation: {
+    flexDirection: 'row',
+    padding: 12,
+    gap: 10,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  navButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+  },
+  activeButton: {
+    backgroundColor: '#2053b6',
+  },
+  navText: {
+    color: '#334155',
+    fontWeight: '600',
+  },
+  activeText: {
+    color: '#ffffff',
+  },
   container: {
     flexGrow: 1,
     justifyContent: 'center',
