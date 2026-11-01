@@ -17,5 +17,9 @@
     "app": "npm run start -w app",
     "api": "npm run api -w backend",
     "db:setup": "npm run db:setup -w backend"
+  },
+  "dependencies": {
+    "react-dom": "19.2.3",
+    "react-native-web": "^0.21.2"
   }
 }
