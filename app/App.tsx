@@ -1,20 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import ClubsScreen from './src/screens/ClubsScreen';
+import { SessionProvider } from './src/session';
 
+// The other screens (T039-T043) are added here as they are built.
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
+    <SessionProvider>
+      <ClubsScreen />
       <StatusBar style="auto" />
-    </View>
+    </SessionProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
