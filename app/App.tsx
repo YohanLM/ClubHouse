@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 
+import CreateAccountScreen, { AccountData } from './CreateAccountScreen';
 import CreateClubScreen from './CreateClubScreen';
 import CreateEventForm, { EventData } from './CreateEventForm';
 
@@ -27,7 +28,7 @@ type Session = {
   role: string;
 };
 
-type Screen = 'club' | 'event';
+type Screen = 'account' | 'club' | 'event';
 
 async function readResponse(response: Response) {
   const data = await response.json();
@@ -106,6 +107,18 @@ export default function App() {
     await readResponse(response);
   }
 
+  async function handleCreateAccount(account: AccountData) {
+    const response = await fetch(`${API}/accounts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(account),
+    });
+
+    await readResponse(response);
+  }
+
   function handleLogout() {
     setToken('');
     setClubs([]);
@@ -169,6 +182,23 @@ export default function App() {
         <TouchableOpacity
           style={[
             styles.navButton,
+            screen === 'account' && styles.activeButton,
+          ]}
+          onPress={() => setScreen('account')}
+        >
+          <Text
+            style={[
+              styles.navText,
+              screen === 'account' && styles.activeText,
+            ]}
+          >
+            Create Account
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.navButton,
             screen === 'event' && styles.activeButton,
           ]}
           onPress={() => setScreen('event')}
@@ -202,9 +232,11 @@ export default function App() {
       </View>
 
       <View style={styles.flex}>
-        {screen === 'club'
-          ? <CreateClubScreen />
-          : renderEventScreen()}
+        {screen === 'account' && (
+          <CreateAccountScreen onSubmit={handleCreateAccount} />
+        )}
+        {screen === 'club' && <CreateClubScreen />}
+        {screen === 'event' && renderEventScreen()}
       </View>
     </View>
   );
