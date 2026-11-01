@@ -70,8 +70,9 @@ npm run test:acceptance
 - Runs the 5 feature files in `features/` (19 scenarios, 39 once Scenario Outline examples are expanded).
 - Uses a separate SQLite test database (`test.db`), created automatically. Your local database is never touched.
 - All tables are cleared before each scenario.
-- Each scenario name starts with its story ID (`ID_xxx_<scenario>`), so the output shows which story each test belongs to.
+- Each scenario name starts with its story ID (`ID_xxx_<scenario>`). The output lists every test on its own line (`✔ ID_xxx_<scenario>`), grouped by feature file, so it shows which story and scenario each test checks.
 - Expected result: `39 scenarios (39 passed)`.
+- An HTML report is also written to `reports/cucumber.html` (uploaded as an artifact by CI).
 
 ### Everything at once
 
