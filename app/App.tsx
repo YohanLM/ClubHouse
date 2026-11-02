@@ -13,6 +13,7 @@ import {
 
 import CreateClubScreen from './CreateClubScreen';
 import CreateEventForm, { EventData } from './CreateEventForm';
+import LoginScreen from './LoginScreen';
 import ClubsScreen from './src/screens/ClubsScreen';
 import { SessionProvider, useSession, type Session } from './src/session';
 
@@ -24,7 +25,7 @@ type Club = {
   category: string;
 };
 
-type Screen = 'club' | 'event' | 'clubs';
+type Screen = 'login' | 'club' | 'event' | 'clubs';
 
 async function readResponse(response: Response) {
   const data = await response.json();
@@ -58,40 +59,44 @@ function AppScreens() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Logs in, checks the role, loads the clubs and stores the session. Throws
+  // with the service message on failure. 
+  async function signIn(email: string, password: string) {
+    const response = await fetch(`${API}/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data: {
+      token: string;
+      session: Omit<Session, 'token'>;
+    } = await readResponse(response);
+
+
+
+    const clubsResponse = await fetch(`${API}/clubs`, {
+      headers: {
+        Authorization: `Bearer ${data.token}`,
+      },
+    });
+
+    const clubsData: { clubs: Club[] } =
+      await readResponse(clubsResponse);
+
+    setClubs(clubsData.clubs);
+    setToken(data.token);
+    setSession({ token: data.token, ...data.session });
+  }
+
   async function handleLogin() {
     setLoading(true);
     setError('');
 
     try {
-      const response = await fetch(`${API}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data: {
-        token: string;
-        session: Omit<Session, 'token'>;
-      } = await readResponse(response);
-
-      if (data.session.role !== 'CLUB_OWNER') {
-        throw new Error('Only club owners can create events');
-      }
-
-      const clubsResponse = await fetch(`${API}/clubs`, {
-        headers: {
-          Authorization: `Bearer ${data.token}`,
-        },
-      });
-
-      const clubsData: { clubs: Club[] } =
-        await readResponse(clubsResponse);
-
-      setClubs(clubsData.clubs);
-      setToken(data.token);
-      setSession({ token: data.token, ...data.session });
+      await signIn(email, password);
     } catch (e) {
       setError(
         e instanceof Error ? e.message : 'Login failed'
@@ -178,6 +183,23 @@ function AppScreens() {
         <TouchableOpacity
           style={[
             styles.navButton,
+            screen === 'login' && styles.activeButton,
+          ]}
+          onPress={() => setScreen('login')}
+        >
+          <Text
+            style={[
+              styles.navText,
+              screen === 'login' && styles.activeText,
+            ]}
+          >
+            Log In
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.navButton,
             screen === 'event' && styles.activeButton,
           ]}
           onPress={() => setScreen('event')}
@@ -228,11 +250,19 @@ function AppScreens() {
       </View>
 
       <View style={styles.flex}>
-        {screen === 'club'
-          ? <CreateClubScreen />
-          : screen === 'clubs'
-            ? <ClubsScreen />
-            : renderEventScreen()}
+        {screen === 'login'
+          ? (
+            <LoginScreen
+              onSubmit={(credentials) =>
+                signIn(credentials.email, credentials.password)
+              }
+            />
+          )
+          : screen === 'club'
+            ? <CreateClubScreen />
+            : screen === 'clubs'
+              ? <ClubsScreen />
+              : renderEventScreen()}
       </View>
     </View>
   );
