@@ -5,6 +5,7 @@
 // createEvent) here.
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { createAccount } from '../services/createAccount';
 import { LOGIN_ERRORS, login } from '../services/login';
 import { listClubs } from '../services/listClubs';
 import { createEvent } from '../services/createEvent';
@@ -43,6 +44,28 @@ export function createApp(prisma: PrismaClient, sessions = new SessionStore()) {
 
   /** Id of the logged-in account, or null when nobody is logged in. */
   const actorId = (req: Request) => sessions.get(bearerToken(req))?.accountId ?? null;
+
+  // ID_001 Create Account: no login needed, the new account has the USER role
+  app.post('/accounts', async (req, res) => {
+    const result = await createAccount(
+      {
+        name: bodyField(req, 'name'),
+        email: bodyField(req, 'email'),
+        password: bodyField(req, 'password'),
+        faculty: bodyField(req, 'faculty')?.trim() || null,
+        studyYear: bodyField(req, 'studyYear')?.trim() || null,
+      },
+      prisma,
+    );
+
+    if (!result.success) {
+      const duplicate = result.message === 'Email already registered';
+      res.status(duplicate ? 409 : 400).json({ message: result.message });
+      return;
+    }
+
+    res.status(201).json({ message: result.message, account: result.account });
+  });
 
   // ID_002 Log In: the returned token identifies the user in the next requests
   app.post('/login', async (req, res) => {

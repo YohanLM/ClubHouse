@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 
+import CreateAccountScreen, { AccountData } from './CreateAccountScreen';
 import CreateClubScreen from './CreateClubScreen';
 import CreateEventForm, { EventData } from './CreateEventForm';
 import ClubsScreen from './src/screens/ClubsScreen';
@@ -24,7 +25,7 @@ type Club = {
   category: string;
 };
 
-type Screen = 'club' | 'event' | 'clubs';
+type Screen = 'account' | 'club' | 'event' | 'clubs';
 
 async function readResponse(response: Response) {
   const data = await response.json();
@@ -114,6 +115,18 @@ function AppScreens() {
     await readResponse(response);
   }
 
+  async function handleCreateAccount(account: AccountData) {
+    const response = await fetch(`${API}/accounts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(account),
+    });
+
+    await readResponse(response);
+  }
+
   function handleLogout() {
     setToken('');
     setClubs([]);
@@ -178,6 +191,23 @@ function AppScreens() {
         <TouchableOpacity
           style={[
             styles.navButton,
+            screen === 'account' && styles.activeButton,
+          ]}
+          onPress={() => setScreen('account')}
+        >
+          <Text
+            style={[
+              styles.navText,
+              screen === 'account' && styles.activeText,
+            ]}
+          >
+            Create Account
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.navButton,
             screen === 'event' && styles.activeButton,
           ]}
           onPress={() => setScreen('event')}
@@ -228,11 +258,12 @@ function AppScreens() {
       </View>
 
       <View style={styles.flex}>
-        {screen === 'club'
-          ? <CreateClubScreen />
-          : screen === 'clubs'
-            ? <ClubsScreen />
-            : renderEventScreen()}
+        {screen === 'account' && (
+          <CreateAccountScreen onSubmit={handleCreateAccount} />
+        )}
+        {screen === 'club' && <CreateClubScreen />}
+        {screen === 'event' && renderEventScreen()}
+        {screen === 'clubs' && <ClubsScreen />}
       </View>
     </View>
   );
