@@ -3,9 +3,11 @@ import { PrismaClient } from '@prisma/client';
 import { createApp } from '../src/api/app';
 import { login, type Session } from '../src/services/login';
 import { listClubs } from '../src/services/listClubs';
+import { createAccount } from '../src/services/createAccount';
 
 // The services have their own unit tests: here they are simulated so that
 // only the HTTP layer (status codes, sessions, JSON) is tested.
+jest.mock('../src/services/createAccount', () => ({ createAccount: jest.fn() }));
 jest.mock('../src/services/login', () => ({
   ...jest.requireActual('../src/services/login'),
   login: jest.fn(),
@@ -43,6 +45,96 @@ describe('HTTP API', () => {
       .send({ email: alice.email, password: 'Passw0rd!23' });
     return response.body.token;
   }
+
+  describe('POST /accounts', () => {
+
+    const carla = {
+      id: 9,
+      name: 'Carla Gomez',
+      email: 'carla.gomez@mail.mcgill.ca',
+      role: 'USER',
+      faculty: 'Engineering',
+      studyYear: 'U2',
+    };
+
+    test('should return 201 with the created account', async () => {
+
+      // Arrange
+      jest.mocked(createAccount).mockResolvedValue({ success: true, message: 'Account created', account: carla });
+
+      // Act
+      const response = await request(app)
+        .post('/accounts')
+        .send({
+          name: 'Carla Gomez',
+          email: 'carla.gomez@mail.mcgill.ca',
+          password: 'Passw0rd!23',
+          faculty: ' Engineering ',
+          studyYear: 'U2',
+        });
+
+      // Assert
+      expect(response.status).toBe(201);
+      expect(response.body).toEqual({ message: 'Account created', account: carla });
+      expect(createAccount).toHaveBeenCalledWith(
+        {
+          name: 'Carla Gomez',
+          email: 'carla.gomez@mail.mcgill.ca',
+          password: 'Passw0rd!23',
+          faculty: 'Engineering',
+          studyYear: 'U2',
+        },
+        prisma,
+      );
+    });
+
+    test('should send null for empty optional fields', async () => {
+
+      // Arrange
+      jest.mocked(createAccount).mockResolvedValue({ success: true, message: 'Account created', account: carla });
+
+      // Act
+      await request(app)
+        .post('/accounts')
+        .send({ name: 'Carla Gomez', email: carla.email, password: 'Passw0rd!23', faculty: '  ' });
+
+      // Assert
+      expect(createAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ faculty: null, studyYear: null }),
+        prisma,
+      );
+    });
+
+    test('should return 400 with the message when the information is invalid', async () => {
+
+      // Arrange
+      jest.mocked(createAccount).mockResolvedValue({ success: false, message: 'Password too weak' });
+
+      // Act
+      const response = await request(app)
+        .post('/accounts')
+        .send({ name: 'Carla Gomez', email: carla.email, password: 'abc' });
+
+      // Assert
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ message: 'Password too weak' });
+    });
+
+    test('should return 409 when the email is already registered', async () => {
+
+      // Arrange
+      jest.mocked(createAccount).mockResolvedValue({ success: false, message: 'Email already registered' });
+
+      // Act
+      const response = await request(app)
+        .post('/accounts')
+        .send({ name: 'Carla Gomez', email: carla.email, password: 'Passw0rd!23' });
+
+      // Assert
+      expect(response.status).toBe(409);
+      expect(response.body).toEqual({ message: 'Email already registered' });
+    });
+  });
 
   describe('POST /login', () => {
 
