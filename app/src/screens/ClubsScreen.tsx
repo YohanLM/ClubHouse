@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: 64,
+    paddingTop: 16,
   },
   title: {
     fontSize: 32,

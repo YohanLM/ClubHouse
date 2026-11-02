@@ -7,6 +7,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import { PrismaClient } from '@prisma/client';
 import { LOGIN_ERRORS, login } from '../services/login';
 import { listClubs } from '../services/listClubs';
+import { createEvent } from '../services/createEvent';
 import { SessionStore } from './sessions';
 
 /** A string field of the JSON body, or undefined when missing or not a string. */
@@ -71,6 +72,69 @@ export function createApp(prisma: PrismaClient, sessions = new SessionStore()) {
     }
 
     res.json({ clubs: result.clubs });
+  });
+  
+  // ID_015 - Create Event (T043)
+  app.post('/events', async (req, res) => {
+    const userId = actorId(req);
+
+    if (userId === null) {
+      res.status(401).json({ message: 'Login required' });
+      return;
+    }
+
+    const clubId: unknown = req.body?.clubId;
+    const capacity: unknown = req.body?.capacity;
+
+    if (
+      typeof clubId !== 'number' ||
+      !Number.isSafeInteger(clubId) ||
+      clubId <= 0
+    ) {
+      res.status(400).json({ message: 'Invalid club ID' });
+      return;
+    }
+
+    if (
+      capacity !== null &&
+      capacity !== undefined &&
+      (
+        typeof capacity !== 'number' ||
+        !Number.isSafeInteger(capacity)
+      )
+    ) {
+      res.status(400).json({
+        message: 'Capacity must be a positive integer',
+      });
+      return;
+    }
+
+    const result = await createEvent(
+      {
+        actorId: userId,
+        clubId,
+        title: bodyField(req, 'title'),
+        category: bodyField(req, 'category'),
+        date: bodyField(req, 'date'),
+        startTime: bodyField(req, 'startTime'),
+        endTime: bodyField(req, 'endTime'),
+        location: bodyField(req, 'location'),
+        capacity: capacity == null ? null : capacity as number,
+      },
+      prisma
+    );
+
+    if (!result.success) {
+      res.status(
+        result.message === 'Unauthorized user' ? 403 : 400
+      ).json({ message: result.message });
+      return;
+    }
+
+    res.status(201).json({
+      message: result.message,
+      event: result.event,
+    });
   });
 
   // Unexpected errors (e.g. database unavailable): log them, keep details private

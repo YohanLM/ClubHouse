@@ -6,6 +6,9 @@ dist/
 coverage/
 *.tsbuildinfo
 
+# acceptance test reports (npm run test:acceptance)
+reports/
+
 # local databases and env (Prisma/SQLite added in T006)
 *.db
 *.db-journal
