@@ -25,12 +25,7 @@ type Club = {
   category: string;
 };
 
-type Session = {
-  accountId: number;
-  role: string;
-};
-
-type Screen = 'account' | 'club' | 'event';
+type Screen = 'account' | 'club' | 'event' | 'clubs';
 
 async function readResponse(response: Response) {
   const data = await response.json();
@@ -268,6 +263,7 @@ function AppScreens() {
         )}
         {screen === 'club' && <CreateClubScreen />}
         {screen === 'event' && renderEventScreen()}
+        {screen === 'clubs' && <ClubsScreen />}
       </View>
     </View>
   );
