@@ -13,6 +13,8 @@ import {
 
 import CreateClubScreen from './CreateClubScreen';
 import CreateEventForm, { EventData } from './CreateEventForm';
+import ClubsScreen from './src/screens/ClubsScreen';
+import { SessionProvider, useSession, type Session } from './src/session';
 
 const API = 'http://localhost:3000';
 
@@ -22,12 +24,7 @@ type Club = {
   category: string;
 };
 
-type Session = {
-  accountId: number;
-  role: string;
-};
-
-type Screen = 'club' | 'event';
+type Screen = 'club' | 'event' | 'clubs';
 
 async function readResponse(response: Response) {
   const data = await response.json();
@@ -39,7 +36,17 @@ async function readResponse(response: Response) {
   return data;
 }
 
+// The shared session lets the Clubs screen use the login of the Create Event tab
 export default function App() {
+  return (
+    <SessionProvider>
+      <AppScreens />
+    </SessionProvider>
+  );
+}
+
+function AppScreens() {
+  const { setSession } = useSession();
   const [screen, setScreen] = useState<Screen>('event');
 
   const [email, setEmail] = useState(
@@ -66,7 +73,7 @@ export default function App() {
 
       const data: {
         token: string;
-        session: Session;
+        session: Omit<Session, 'token'>;
       } = await readResponse(response);
 
       if (data.session.role !== 'CLUB_OWNER') {
@@ -84,6 +91,7 @@ export default function App() {
 
       setClubs(clubsData.clubs);
       setToken(data.token);
+      setSession({ token: data.token, ...data.session });
     } catch (e) {
       setError(
         e instanceof Error ? e.message : 'Login failed'
@@ -110,6 +118,7 @@ export default function App() {
     setToken('');
     setClubs([]);
     setError('');
+    setSession(null);
   }
 
   function renderEventScreen() {
@@ -199,12 +208,31 @@ export default function App() {
             Create Club (Admin UI)
           </Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.navButton,
+            screen === 'clubs' && styles.activeButton,
+          ]}
+          onPress={() => setScreen('clubs')}
+        >
+          <Text
+            style={[
+              styles.navText,
+              screen === 'clubs' && styles.activeText,
+            ]}
+          >
+            Clubs
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.flex}>
         {screen === 'club'
           ? <CreateClubScreen />
-          : renderEventScreen()}
+          : screen === 'clubs'
+            ? <ClubsScreen />
+            : renderEventScreen()}
       </View>
     </View>
   );
