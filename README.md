@@ -49,6 +49,16 @@ npm run api
 - Sessions are kept in memory: log in again after restarting the API.
 - To add a route for another service, add it in `backend/src/api/app.ts` and test it in `backend/tests/api.test.ts`.
 
+### Running the app against the API
+
+Start the API, then `npm run app` in a second terminal. The app calls `http://localhost:3000` by default (`app/src/api/client.ts`). On a phone or an Android emulator, `localhost` is the device itself, so give it your computer's address (same Wi-Fi network):
+
+```bash
+EXPO_PUBLIC_API_URL=http://192.168.0.12:3000 npm run app   # PowerShell: $env:EXPO_PUBLIC_API_URL="http://192.168.0.12:3000"; npm run app
+```
+
+Screens read the logged-in user from `useSession()` (`app/src/session.tsx`) and send `session.token` to the API.
+
 ## Running the tests
 
 Run everything from the repo root, after `npm install`.
