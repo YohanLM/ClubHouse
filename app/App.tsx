@@ -60,8 +60,7 @@ function AppScreens() {
   const [error, setError] = useState('');
 
   // Logs in, checks the role, loads the clubs and stores the session. Throws
-  // with the service message on failure. Used by the Log In screen and the
-  // Create Event login.
+  // with the service message on failure. 
   async function signIn(email: string, password: string) {
     const response = await fetch(`${API}/login`, {
       method: 'POST',
@@ -76,9 +75,7 @@ function AppScreens() {
       session: Omit<Session, 'token'>;
     } = await readResponse(response);
 
-    if (data.session.role !== 'CLUB_OWNER') {
-      throw new Error('Only club owners can create events');
-    }
+
 
     const clubsResponse = await fetch(`${API}/clubs`, {
       headers: {
