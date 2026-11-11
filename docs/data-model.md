@@ -181,3 +181,8 @@ model Event {
   @@index([clubId, date])
 }
 ```
+
+### Event status rules
+- `EventStatus`: `SCHEDULED`, `CANCELLED`, `COMPLETED`. New events start as `SCHEDULED`.
+- Allowed changes: `SCHEDULED → CANCELLED`, `SCHEDULED → COMPLETED`. `CANCELLED` and `COMPLETED` are final.
+- `cancellationReason` (nullable string, max 500 chars): required when cancelling (`Cancellation reason is required`), must be null otherwise.

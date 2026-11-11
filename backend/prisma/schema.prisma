@@ -21,6 +21,7 @@ enum ClubStatus {
 enum EventStatus {
   SCHEDULED
   CANCELLED
+  COMPLETED
 }
 
 model Account {
@@ -63,6 +64,7 @@ model Event {
   location  String
   capacity  Int?
   status    EventStatus @default(SCHEDULED)
+  cancellationReason String?
   createdAt DateTime    @default(now())
 
   club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
