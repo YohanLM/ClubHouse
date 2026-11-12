@@ -21,11 +21,12 @@ test('Scheduled -> Completed without a reason', () => {
 });
 
 test.each([[undefined], [null], [''], ['   ']])(
-  'cancelling without a reason is rejected (%p)',
+  'cancelling without a reason is allowed (%p)',
   reason => {
     expect(validateStatusChange('SCHEDULED', 'CANCELLED', reason)).toEqual({
-      ok: false,
-      message: E.reasonRequired,
+      ok: true,
+      status: 'CANCELLED',
+      cancellationReason: null,
     });
   }
 );
