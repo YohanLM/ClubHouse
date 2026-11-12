@@ -7,7 +7,8 @@ import { EVENT_STATUS_ERRORS, validateStatusChange } from './eventStatus';
 export const CANCEL_EVENT_ERRORS = {
   unauthorized: 'Unauthorized user',
   eventNotFound: 'Event not found',
-  notScheduled: 'Only scheduled events can be cancelled',
+  alreadyCancelled: 'Event is already cancelled',
+  alreadyCompleted: 'Event has already taken place',
   reasonTooLong: EVENT_STATUS_ERRORS.reasonTooLong,
 } as const;
 
@@ -67,9 +68,8 @@ export async function cancelEvent(
   }
 
   // 4. Only scheduled events can be cancelled; the reason must be valid
-  if (event.status !== 'SCHEDULED') {
-    return fail(CANCEL_EVENT_ERRORS.notScheduled);
-  }
+  if (event.status === 'CANCELLED') return fail(CANCEL_EVENT_ERRORS.alreadyCancelled);
+  if (event.status === 'COMPLETED') return fail(CANCEL_EVENT_ERRORS.alreadyCompleted);
 
   const change = validateStatusChange(event.status, 'CANCELLED', input.reason);
   if (!change.ok) {
@@ -83,7 +83,15 @@ export async function cancelEvent(
     data: { status: 'CANCELLED', cancellationReason: change.cancellationReason },
   });
 
-  if (count === 0) return fail(CANCEL_EVENT_ERRORS.notScheduled);
+  if (count === 0) {
+    // Changed concurrently: report its current status.
+    const current = await prisma.event.findUnique({ where: { id: event.id } });
+    return fail(
+      current?.status === 'COMPLETED'
+        ? CANCEL_EVENT_ERRORS.alreadyCompleted
+        : CANCEL_EVENT_ERRORS.alreadyCancelled
+    );
+  }
 
   return {
     success: true,

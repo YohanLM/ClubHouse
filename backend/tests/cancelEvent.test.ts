@@ -100,19 +100,31 @@ test('rejects an owner whose role is no longer CLUB_OWNER', async () => {
   expect(result).toEqual({ success: false, message: E.unauthorized });
 });
 
-test.each(['CANCELLED', 'COMPLETED'])('rejects a %s event', async status => {
+test.each([
+  ['CANCELLED', E.alreadyCancelled],
+  ['COMPLETED', E.alreadyCompleted],
+])('rejects a %s event', async (status, message) => {
   mockEvent(status);
 
   const result = await cancelEvent(base, prisma);
 
-  expect(result).toEqual({ success: false, message: E.notScheduled });
+  expect(result).toEqual({ success: false, message });
   expect(prisma.event.updateMany).not.toHaveBeenCalled();
 });
 
-test('rejects when the event changed status concurrently', async () => {
+test.each([
+  ['CANCELLED', E.alreadyCancelled],
+  ['COMPLETED', E.alreadyCompleted],
+])('reports the new status when the event became %s concurrently', async (status, message) => {
   jest.mocked(prisma.event.updateMany).mockResolvedValue({ count: 0 });
+  jest.mocked(prisma.event.findUnique)
+    .mockResolvedValueOnce({
+      id: 20, clubId: 10, title: 'Robotics Workshop', status: 'SCHEDULED',
+      club: { id: 10, ownerId: OWNER_ID },
+    } as never)
+    .mockResolvedValueOnce({ id: 20, status } as never);
 
   const result = await cancelEvent(base, prisma);
 
-  expect(result).toEqual({ success: false, message: E.notScheduled });
+  expect(result).toEqual({ success: false, message });
 });
