@@ -5,7 +5,6 @@ export const MAX_CANCELLATION_REASON_LENGTH = 500;
 export const EVENT_STATUS_ERRORS = {
   invalidStatus: 'Invalid event status',
   invalidTransition: 'Invalid status change',
-  reasonRequired: 'Cancellation reason is required',
   reasonNotAllowed: 'Cancellation reason only applies to cancelled events',
   reasonTooLong: 'Cancellation reason is too long',
 } as const;
@@ -39,14 +38,12 @@ export function validateStatusChange(
 
   const trimmed = reason?.trim() ?? '';
 
+  // The reason is optional when cancelling; a blank reason is stored as null.
   if (next === 'CANCELLED') {
-    if (!trimmed) {
-      return { ok: false, message: EVENT_STATUS_ERRORS.reasonRequired };
-    }
     if (trimmed.length > MAX_CANCELLATION_REASON_LENGTH) {
       return { ok: false, message: EVENT_STATUS_ERRORS.reasonTooLong };
     }
-    return { ok: true, status: next, cancellationReason: trimmed };
+    return { ok: true, status: next, cancellationReason: trimmed || null };
   }
 
   if (trimmed) {

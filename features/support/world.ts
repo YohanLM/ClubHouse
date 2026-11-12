@@ -16,6 +16,13 @@ export class ClubHouseWorld extends World {
   /** The message issued by the last action (e.g. "Account created"). */
   message: string | null = null;
 
+  /**
+   * Type of the step being run ("Context" for Given, "Action" for When,
+   * "Outcome" for Then; And/But take the type of the step before them).
+   * Lets one step text both set up state and check it.
+   */
+  currentStepType: string | undefined = undefined;
+
   constructor(options: IWorldOptions) {
     super(options);
   }

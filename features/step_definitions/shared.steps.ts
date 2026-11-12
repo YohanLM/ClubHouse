@@ -3,8 +3,8 @@
 // `this.message` so that "the message ... is issued" can check it.
 
 import assert from 'node:assert/strict';
-import { Given, Then, type DataTable } from '@cucumber/cucumber';
-import type { Role } from '@prisma/client';
+import { BeforeStep, Given, Then, type DataTable } from '@cucumber/cucumber';
+import type { EventStatus, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../../backend/src/prisma.ts';
 import { normalizeEmail } from '../../backend/src/services/registrationValidation.ts';
@@ -96,3 +96,107 @@ Given(
 Then('the message {string} is issued', function (this: ClubHouseWorld, expected: string) {
   assert.equal(this.message, expected);
 });
+
+// ---------- Events ----------
+
+BeforeStep(function (this: ClubHouseWorld, { pickleStep }) {
+  this.currentStepType = pickleStep.type;
+});
+
+const EVENT_STATUSES: Record<string, EventStatus> = {
+  Scheduled: 'SCHEDULED',
+  Cancelled: 'CANCELLED',
+  Completed: 'COMPLETED',
+};
+
+export function parseEventStatus(status: string): EventStatus {
+  const parsed = EVENT_STATUSES[status];
+  if (!parsed) throw new Error(`Unknown event status "${status}"`);
+  return parsed;
+}
+
+export async function findClubByName(name: string) {
+  const club = await prisma.club.findUnique({ where: { name } });
+  assert.ok(club, `Club "${name}" does not exist`);
+  return club;
+}
+
+/**
+ * Returns the club, creating it if the scenario has not set it up yet
+ * (e.g. ID_019, ID_020). Its owner is a placeholder; scenarios that care
+ * set the real one with "... is the owner of ...".
+ */
+export async function findOrCreateClub(name: string) {
+  const existing = await prisma.club.findUnique({ where: { name } });
+  if (existing) return existing;
+  const owner = await upsertAccount({ email: 'placeholder.owner@mcgill.ca', role: 'CLUB_OWNER' });
+  return prisma.club.create({ data: { name, category: 'Academic', ownerId: owner.id } });
+}
+
+export async function findEventByTitle(title: string) {
+  const event = await prisma.event.findFirst({ where: { title } });
+  assert.ok(event, `Event "${title}" does not exist`);
+  return event;
+}
+
+/**
+ * Creates one event from a table row. Only Title is required; the other
+ * columns (Category, Date, Start, End, Location, Capacity, Status, Reason)
+ * fall back to defaults the scenarios do not care about.
+ */
+async function createEventFromRow(clubId: number, row: Record<string, string>) {
+  assert.ok(row.Title, 'Every event row needs a Title');
+  await prisma.event.create({
+    data: {
+      clubId,
+      title: row.Title,
+      category: row.Category || 'Academic',
+      date: row.Date || '2026-12-01',
+      startTime: row.Start || '18:00',
+      endTime: row.End || '20:00',
+      location: row.Location || 'McConnell 103',
+      capacity: row.Capacity ? Number(row.Capacity) : null,
+      status: row.Status ? parseEventStatus(row.Status) : 'SCHEDULED',
+      cancellationReason: row.Reason || null,
+    },
+  });
+}
+
+// Columns: ClubName, Title (required), plus the optional columns above.
+// Clubs that do not exist yet are created.
+Given('the following events exist:', async function (table: DataTable) {
+  for (const row of table.hashes()) {
+    assert.ok(row.ClubName, 'Every event row needs a ClubName');
+    const club = await findOrCreateClub(row.ClubName);
+    await createEventFromRow(club.id, row);
+  }
+});
+
+// Same columns as "the following events exist:", without ClubName.
+Given(
+  'the club {string} has the following events:',
+  async function (clubName: string, table: DataTable) {
+    const club = await findOrCreateClub(clubName);
+    for (const row of table.hashes()) {
+      await createEventFromRow(club.id, row);
+    }
+  },
+);
+
+Then('the event {string} has status {string}', async function (title: string, status: string) {
+  const event = await findEventByTitle(title);
+  assert.equal(event.status, parseEventStatus(status));
+});
+
+// Given: sets the capacity (ID_020). Then: checks it (ID_015).
+Given(
+  'the event {string} has a capacity of {int}',
+  async function (this: ClubHouseWorld, title: string, capacity: number) {
+    const event = await findEventByTitle(title);
+    if (this.currentStepType === 'Context') {
+      await prisma.event.update({ where: { id: event.id }, data: { capacity } });
+    } else {
+      assert.equal(event.capacity, capacity);
+    }
+  },
+);
