@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { Given, Then, When } from '@cucumber/cucumber';
 import { prisma } from '../../backend/src/prisma.ts';
+import { followClub } from '../../backend/src/services/followClub.ts';
 import { normalizeEmail } from '../../backend/src/services/registrationValidation.ts';
 import type { ClubHouseWorld } from '../support/world.ts';
 import { upsertAccount } from './shared.steps.ts';
@@ -72,42 +73,16 @@ async function assertFollowExists(accountEmail: string, clubName: string, expect
   assert.equal(Boolean(follow), expected);
 }
 
+// Calls followClub (T056) as the logged-in user, or as nobody.
 async function followClubForCurrentUser(this: FollowClubWorld, clubName: string) {
   this.followedClubName = clubName;
 
-  if (!this.currentUser) {
-    this.message = 'Login required';
-    return;
-  }
-
-  const club = await prisma.club.findUnique({ where: { name: clubName } });
-  if (!club) {
-    this.message = 'Club not found';
-    return;
-  }
-
-  const follow = await prisma.follow.findUnique({
-    where: {
-      accountId_clubId: {
-        accountId: this.currentUser.id,
-        clubId: club.id,
-      },
-    },
-  });
-
-  if (follow) {
-    this.message = 'Club already followed';
-    return;
-  }
-
-  await prisma.follow.create({
-    data: {
-      accountId: this.currentUser.id,
-      clubId: club.id,
-    },
-  });
-
-  this.message = 'Club followed';
+  const club = await findClub(clubName);
+  const result = await followClub(
+    { actorId: this.currentUser?.id ?? null, clubId: club.id },
+    prisma,
+  );
+  this.message = result.message;
 }
 
 // ---------- Background / setup ----------

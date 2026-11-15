@@ -100,6 +100,7 @@ erDiagram
 | Create account | – | – | – | ✅ | – | 
 | Log in | ✅ | ✅ | ✅ | – | – | 
 | Browse clubs | ✅ | ✅ | ✅ | ❌ | `Login required` | 
+| Follow club (ID_011) | ✅ | ✅ | ✅ | ❌ | `Login required`; unknown club → `Club not found`; inactive club → `Club is inactive`; already followed → `Club already followed` (not an error, the follow is kept) | 
 | Create club | ❌ | ❌ | ✅ | ❌ | `Unauthorized user` | 
 | Create event for club X | ❌ | ✅ **only if owner of X** | ❌ | ❌ | `Unauthorized user` | 
 
