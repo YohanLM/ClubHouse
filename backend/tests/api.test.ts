@@ -4,6 +4,8 @@ import { createApp } from '../src/api/app';
 import { login, type Session } from '../src/services/login';
 import { listClubs } from '../src/services/listClubs';
 import { createAccount } from '../src/services/createAccount';
+import { followClub } from '../src/services/followClub';
+import { listFollowedClubs } from '../src/services/listFollowedClubs';
 
 // The services have their own unit tests: here they are simulated so that
 // only the HTTP layer (status codes, sessions, JSON) is tested.
@@ -13,6 +15,11 @@ jest.mock('../src/services/login', () => ({
   login: jest.fn(),
 }));
 jest.mock('../src/services/listClubs', () => ({ listClubs: jest.fn() }));
+jest.mock('../src/services/followClub', () => ({
+  ...jest.requireActual('../src/services/followClub'),
+  followClub: jest.fn(),
+}));
+jest.mock('../src/services/listFollowedClubs', () => ({ listFollowedClubs: jest.fn() }));
 
 const prisma = {} as PrismaClient;
 
@@ -262,6 +269,104 @@ describe('HTTP API', () => {
       // Assert
       expect(listClubs).toHaveBeenCalledWith({ actorId: null }, prisma);
     });
+  });
+
+  describe('GET /follows', () => {
+
+    test('should return the ids of the clubs followed by the logged-in user', async () => {
+
+      // Arrange
+      const token = await loginAsAlice();
+      jest.mocked(listFollowedClubs).mockResolvedValue({ success: true, clubIds: [4, 2] });
+
+      // Act
+      const response = await request(app).get('/follows').set('Authorization', `Bearer ${token}`);
+
+      // Assert
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ clubIds: [4, 2] });
+      expect(listFollowedClubs).toHaveBeenCalledWith({ actorId: alice.accountId }, prisma);
+    });
+
+    test('should return 401 Login required when no token is sent', async () => {
+
+      // Arrange
+      jest.mocked(listFollowedClubs).mockResolvedValue({ success: false, message: 'Login required' });
+
+      // Act
+      const response = await request(app).get('/follows');
+
+      // Assert
+      expect(response.status).toBe(401);
+      expect(response.body).toEqual({ message: 'Login required' });
+      expect(listFollowedClubs).toHaveBeenCalledWith({ actorId: null }, prisma);
+    });
+  });
+
+  describe('POST /clubs/:clubId/follow', () => {
+
+    test.each(['Club followed', 'Club already followed'] as const)(
+      'should return 200 with "%s" and the follower count',
+      async (message) => {
+
+        // Arrange
+        const token = await loginAsAlice();
+        jest.mocked(followClub).mockResolvedValue({ success: true, message, clubId: 4, followerCount: 3 });
+
+        // Act
+        const response = await request(app)
+          .post('/clubs/4/follow')
+          .set('Authorization', `Bearer ${token}`);
+
+        // Assert
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({ message, clubId: 4, followerCount: 3 });
+        expect(followClub).toHaveBeenCalledWith({ actorId: alice.accountId, clubId: 4 }, prisma);
+      },
+    );
+
+    test.each([
+      ['Login required', 401],
+      ['Club not found', 404],
+      ['Club is inactive', 400],
+    ] as const)('should return the message "%s" with status %i', async (message, status) => {
+
+      // Arrange
+      jest.mocked(followClub).mockResolvedValue({ success: false, message });
+
+      // Act
+      const response = await request(app).post('/clubs/4/follow');
+
+      // Assert
+      expect(response.status).toBe(status);
+      expect(response.body).toEqual({ message });
+    });
+
+    test('should send a null actor when no token is sent', async () => {
+
+      // Arrange
+      jest.mocked(followClub).mockResolvedValue({ success: false, message: 'Login required' });
+
+      // Act
+      await request(app).post('/clubs/4/follow');
+
+      // Assert
+      expect(followClub).toHaveBeenCalledWith({ actorId: null, clubId: 4 }, prisma);
+    });
+
+    test.each(['abc', '0', '-1', '1.5', '007', '99999999999999999999'])(
+      'should return 404 Club not found for the club id "%s" without calling the service',
+      async (clubId) => {
+
+        // Act
+        const response = await request(app).post(`/clubs/${clubId}/follow`);
+
+        // Assert
+        expect(response.status).toBe(404);
+        expect(response.body).toEqual({ message: 'Club not found' });
+        expect(followClub).not.toHaveBeenCalled();
+      },
+    );
   });
 
   test('should answer the browser preflight request with the CORS headers', async () => {
