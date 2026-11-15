@@ -8,6 +8,7 @@ export * from './services/loginLockout';
 export * from './services/createClub';
 export * from './services/listClubs';
 export * from './services/followClub';
+export * from './services/listFollowedClubs';
 export * from './services/login';
 export * from './services/createEvent';
 export * from './services/eventStatus';
