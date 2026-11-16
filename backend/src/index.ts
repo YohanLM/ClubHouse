@@ -13,4 +13,5 @@ export * from './services/login';
 export * from './services/createEvent';
 export * from './services/eventStatus';
 export * from './services/cancelEvent';
+export * from './services/editEvent';
 export * from './services/getCalendar';

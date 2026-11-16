@@ -2,10 +2,11 @@
 // Reuses the Background and shared steps (ID_015 / shared.steps.ts).
 
 import assert from 'node:assert/strict';
-import { BeforeStep, Then } from '@cucumber/cucumber';
+import { BeforeStep, Then, When } from '@cucumber/cucumber';
 import type { Event } from '@prisma/client';
 import { prisma } from '../../backend/src/prisma.ts';
 import type { ClubHouseWorld } from '../support/world.ts';
+import { editEvent } from '../../backend/src/services/editEvent.ts';
 import { findEventByTitle } from './shared.steps.ts';
 
 export type EditWorld = ClubHouseWorld & {
@@ -51,3 +52,22 @@ Then('the event {string} is unchanged', async function (this: EditWorld, title: 
   assert.ok(before, 'No snapshot taken: the When step must run before this check');
   assert.deepEqual(after, before);
 });
+
+When(
+  'the user changes the {string} of the event {string} to {string}',
+  async function (this: EditWorld, field: string, title: string, value: string) {
+    const event = await findEventByTitle(title);
+    const key = parseField(field);
+    const clock = () => new Date(`${this.today}T12:00:00-04:00`);
+    const result = await editEvent(
+      {
+        actorId: this.currentUser?.id ?? null,
+        eventId: event.id,
+        [key]: key === 'capacity' ? Number(value) : value,
+      },
+      prisma,
+      clock,
+    );
+    this.message = result.message;
+  },
+);
