@@ -1,6 +1,6 @@
 // Public entry point of the ClubHouse service layer.
 // Each service (createAccount, login, createClub, listClubs, followClub,
-// createEvent, cancelEvent, getCalendar)
+// createEvent, cancelEvent, getCalendar, rsvpToEvent)
 // lives in src/services/ and is re-exported here, so the acceptance-test
 // step definitions and the app import from '@clubhouse/backend'.
 export * from './services/registrationValidation';
@@ -15,3 +15,4 @@ export * from './services/eventStatus';
 export * from './services/cancelEvent';
 export * from './services/editEvent';
 export * from './services/getCalendar';
+export * from './services/rsvpToEvent';

@@ -11,6 +11,11 @@ import { listClubs } from '../services/listClubs';
 import { FOLLOW_CLUB_ERRORS, followClub, type FollowClubError } from '../services/followClub';
 import { listFollowedClubs } from '../services/listFollowedClubs';
 import { createEvent } from '../services/createEvent';
+import {
+  RSVP_TO_EVENT_ERRORS,
+  rsvpToEvent,
+  type RsvpToEventError,
+} from '../services/rsvpToEvent';
 import { SessionStore } from './sessions';
 
 /** A string field of the JSON body, or undefined when missing or not a string. */
@@ -24,6 +29,15 @@ const FOLLOW_CLUB_STATUS: Record<FollowClubError, number> = {
   [FOLLOW_CLUB_ERRORS.loginRequired]: 401,
   [FOLLOW_CLUB_ERRORS.clubNotFound]: 404,
   [FOLLOW_CLUB_ERRORS.clubInactive]: 400,
+};
+
+const RSVP_TO_EVENT_STATUS: Record<RsvpToEventError, number> = {
+  [RSVP_TO_EVENT_ERRORS.loginRequired]: 401,
+  [RSVP_TO_EVENT_ERRORS.eventNotFound]: 404,
+  [RSVP_TO_EVENT_ERRORS.eventCancelled]: 400,
+  [RSVP_TO_EVENT_ERRORS.alreadyTakenPlace]: 400,
+  [RSVP_TO_EVENT_ERRORS.eventFull]: 400,
+  [RSVP_TO_EVENT_ERRORS.invalidResponse]: 400,
 };
 
 /** The token of an "Authorization: Bearer <token>" header. */
@@ -204,6 +218,37 @@ export function createApp(prisma: PrismaClient, sessions = new SessionStore()) {
     res.status(201).json({
       message: result.message,
       event: result.event,
+    });
+  });
+
+  // ID_020 RSVP to Event
+  app.post('/events/:eventId/rsvp', async (req, res) => {
+    const eventIdParam = String(req.params.eventId);
+
+    if (!/^[1-9]\d*$/.test(eventIdParam) || !Number.isSafeInteger(Number(eventIdParam))) {
+      res.status(404).json({ message: RSVP_TO_EVENT_ERRORS.eventNotFound });
+      return;
+    }
+
+    const result = await rsvpToEvent(
+      {
+        actorId: actorId(req),
+        eventId: Number(eventIdParam),
+        response: bodyField(req, 'response'),
+      },
+      prisma,
+    );
+
+    if (!result.success) {
+      res.status(RSVP_TO_EVENT_STATUS[result.message]).json({ message: result.message });
+      return;
+    }
+
+    res.json({
+      message: result.message,
+      eventId: result.eventId,
+      response: result.response,
+      attendeeCount: result.attendeeCount,
     });
   });
 
