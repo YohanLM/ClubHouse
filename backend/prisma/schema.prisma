@@ -24,6 +24,12 @@ enum EventStatus {
   COMPLETED
 }
 
+enum RSVPResponse {
+  ATTENDING
+  NOT_ATTENDING
+}
+
+
 model Account {
   id                  Int       @id @default(autoincrement())
   name                String
@@ -37,6 +43,8 @@ model Account {
   createdAt           DateTime  @default(now())
 
   ownedClubs Club[] @relation("ClubOwner")
+  follows    Follow[]
+  rsvps RSVP[]
 }
 
 model Club {
@@ -49,8 +57,20 @@ model Club {
 
   owner  Account @relation("ClubOwner", fields: [ownerId], references: [id])
   events Event[]
+  followers Follow[]
 
   @@index([ownerId])
+}
+
+model Follow {
+  accountId Int
+  clubId    Int
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  club    Club    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@id([accountId, clubId])
+  @@index([clubId])
 }
 
 model Event {
@@ -66,8 +86,21 @@ model Event {
   status    EventStatus @default(SCHEDULED)
   cancellationReason String?
   createdAt DateTime    @default(now())
+  rsvps RSVP[]
 
   club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
 
   @@index([clubId, date])
+}
+
+model RSVP {
+  accountId Int
+  eventId   Int
+  response  RSVPResponse
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([accountId, eventId])
+  @@index([eventId])
 }

@@ -8,6 +8,8 @@ import { PrismaClient } from '@prisma/client';
 import { createAccount } from '../services/createAccount';
 import { LOGIN_ERRORS, login } from '../services/login';
 import { listClubs } from '../services/listClubs';
+import { FOLLOW_CLUB_ERRORS, followClub, type FollowClubError } from '../services/followClub';
+import { listFollowedClubs } from '../services/listFollowedClubs';
 import { createEvent } from '../services/createEvent';
 import { SessionStore } from './sessions';
 
@@ -16,6 +18,13 @@ function bodyField(req: Request, name: string): string | undefined {
   const value: unknown = req.body?.[name];
   return typeof value === 'string' ? value : undefined;
 }
+
+/** HTTP status of each followClub error. */
+const FOLLOW_CLUB_STATUS: Record<FollowClubError, number> = {
+  [FOLLOW_CLUB_ERRORS.loginRequired]: 401,
+  [FOLLOW_CLUB_ERRORS.clubNotFound]: 404,
+  [FOLLOW_CLUB_ERRORS.clubInactive]: 400,
+};
 
 /** The token of an "Authorization: Bearer <token>" header. */
 function bearerToken(req: Request): string | undefined {
@@ -96,7 +105,45 @@ export function createApp(prisma: PrismaClient, sessions = new SessionStore()) {
 
     res.json({ clubs: result.clubs });
   });
-  
+
+  // ID_011 Follow Club: ids of the clubs the logged-in user follows
+  app.get('/follows', async (req, res) => {
+    const result = await listFollowedClubs({ actorId: actorId(req) }, prisma);
+
+    if (!result.success) {
+      res.status(401).json({ message: result.message });
+      return;
+    }
+
+    res.json({ clubIds: result.clubIds });
+  });
+
+  // ID_011 Follow Club: following an already followed club is not an error
+  app.post('/clubs/:clubId/follow', async (req, res) => {
+    const clubIdParam = String(req.params.clubId);
+
+    if (!/^[1-9]\d*$/.test(clubIdParam) || !Number.isSafeInteger(Number(clubIdParam))) {
+      res.status(404).json({ message: FOLLOW_CLUB_ERRORS.clubNotFound });
+      return;
+    }
+
+    const result = await followClub(
+      { actorId: actorId(req), clubId: Number(clubIdParam) },
+      prisma,
+    );
+
+    if (!result.success) {
+      res.status(FOLLOW_CLUB_STATUS[result.message]).json({ message: result.message });
+      return;
+    }
+
+    res.json({
+      message: result.message,
+      clubId: result.clubId,
+      followerCount: result.followerCount,
+    });
+  });
+
   // ID_015 - Create Event (T043)
   app.post('/events', async (req, res) => {
     const userId = actorId(req);
