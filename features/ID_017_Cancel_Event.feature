@@ -39,7 +39,7 @@ Feature: Cancel Event
       | Demo Night       | Cancelled | Event is already cancelled    |
       | Robotics Kickoff | Completed | Event has already taken place |
 
-  Scenario: Attempt to cancel an event as a user who is not the club owner (Error Flow)
+  Scenario: ID_017_Attempt to cancel an event as a user who is not the club owner (Error Flow)
     Given "evan.roy@mail.mcgill.ca" is logged in with role "User"
     When the user cancels the event "Robotics Workshop"
     Then the event "Robotics Workshop" has status "Scheduled"
