@@ -128,3 +128,17 @@ test.each([
 
   expect(result).toEqual({ success: false, message });
 });
+
+test('accepts a reason of exactly the maximum length', async () => {
+  const reason = 'x'.repeat(MAX_CANCELLATION_REASON_LENGTH);
+  const result = await cancelEvent({ ...base, reason }, prisma);
+
+  expect(result).toMatchObject({
+    success: true,
+    event: { status: 'CANCELLED', cancellationReason: reason },
+  });
+  expect(prisma.event.updateMany).toHaveBeenCalledWith({
+    where: { id: 20, status: 'SCHEDULED' },
+    data: { status: 'CANCELLED', cancellationReason: reason },
+  });
+});
