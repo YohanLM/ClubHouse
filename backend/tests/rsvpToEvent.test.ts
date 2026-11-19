@@ -137,3 +137,80 @@ test('requires a logged-in existing account', async () => {
   const missingAccount = await rsvpToEvent(input, prisma, clock);
   expect(missingAccount).toEqual({ success: false, message: E.loginRequired });
 });
+
+test('rejects an RSVP to an event that does not exist', async () => {
+  jest.mocked(prisma.event.findUnique).mockResolvedValue(null);
+
+  const result = await rsvpToEvent(input, prisma, clock);
+
+  expect(result).toEqual({ success: false, message: E.eventNotFound });
+  expect(prisma.rSVP.upsert).not.toHaveBeenCalled();
+});
+
+test('accepts an RSVP to an event taking place today', async () => {
+  mockEvent({ date: '2026-11-15' });
+
+  const result = await rsvpToEvent(input, prisma, clock);
+
+  expect(result).toMatchObject({ success: true, response: 'ATTENDING' });
+});
+
+test.each([undefined, null, '', '   '])(
+  'rejects a missing RSVP response (%p)',
+  async (response) => {
+    const result = await rsvpToEvent({ ...input, response }, prisma, clock);
+
+    expect(result).toEqual({ success: false, message: E.invalidResponse });
+    expect(prisma.rSVP.upsert).not.toHaveBeenCalled();
+  }
+);
+
+test.each([
+  ['  attending  ', 'ATTENDING'],
+  ['not   attending', 'NOT_ATTENDING'],
+  ['NOT_ATTENDING', 'NOT_ATTENDING'],
+])('normalizes the response %p to %s', async (value, response) => {
+  const result = await rsvpToEvent({ ...input, response: value }, prisma, clock);
+
+  expect(result).toMatchObject({ success: true, response });
+});
+
+test('accepts attending when the event still has room', async () => {
+  mockEvent({ capacity: 2 });
+  jest.mocked(prisma.rSVP.count)
+    .mockReset()
+    .mockResolvedValueOnce(1)
+    .mockResolvedValueOnce(2);
+
+  const result = await rsvpToEvent(input, prisma, clock);
+
+  expect(result).toMatchObject({ success: true, attendeeCount: 2 });
+  expect(prisma.rSVP.upsert).toHaveBeenCalled();
+});
+
+test('allows declining an event that is full', async () => {
+  mockEvent({ capacity: 1 });
+  jest.mocked(prisma.rSVP.count)
+    .mockReset()
+    .mockResolvedValueOnce(1)
+    .mockResolvedValueOnce(1);
+
+  const result = await rsvpToEvent(
+    { ...input, response: 'Not Attending' },
+    prisma,
+    clock
+  );
+
+  expect(result).toMatchObject({
+    success: true,
+    response: 'NOT_ATTENDING',
+    attendeeCount: 1,
+  });
+});
+
+test('does not query the database when nobody is logged in', async () => {
+  await rsvpToEvent({ ...input, actorId: null }, prisma, clock);
+
+  expect(prisma.account.findUnique).not.toHaveBeenCalled();
+  expect(prisma.event.findUnique).not.toHaveBeenCalled();
+});
