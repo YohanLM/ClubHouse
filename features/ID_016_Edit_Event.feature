@@ -14,7 +14,7 @@ Feature: Edit Event
       | Robotics Workshop | 2026-12-03 | Scheduled |
       | Demo Night        | 2026-12-10 | Cancelled |
 
-  Scenario Outline: Edit a scheduled event with valid details (Normal Flow)
+  Scenario Outline: ID_016_Edit a scheduled event with valid details (Normal Flow)
     Given "dana.lee@mail.mcgill.ca" is logged in with role "Club Owner"
     When the user changes the "<Field>" of the event "Robotics Workshop" to "<Value>"
     Then the event "Robotics Workshop" has the "<Field>" "<Value>"
@@ -25,13 +25,13 @@ Feature: Edit Event
       | location | Trottier 0100 |
       | date     | 2026-12-05    |
 
-  Scenario: Set a capacity limit on a scheduled event (Alternate Flow)
+  Scenario: ID_016_Set a capacity limit on a scheduled event (Alternate Flow)
     Given "dana.lee@mail.mcgill.ca" is logged in with role "Club Owner"
     When the user changes the "capacity" of the event "Robotics Workshop" to "50"
     Then the event "Robotics Workshop" has the "capacity" "50"
     And the message "Event updated" is issued
 
-  Scenario Outline: Attempt to edit an event with invalid details (Error Flow)
+  Scenario Outline: ID_016_Attempt to edit an event with invalid details (Error Flow)
     Given "dana.lee@mail.mcgill.ca" is logged in with role "Club Owner"
     When the user changes the "<Field>" of the event "Robotics Workshop" to "<Value>"
     Then the event "Robotics Workshop" is unchanged
@@ -43,13 +43,13 @@ Feature: Edit Event
       | date     | 2026-11-01 | Event date cannot be past           |
       | capacity | 0          | Capacity must be a positive integer |
 
-  Scenario: Attempt to edit a cancelled event (Error Flow)
+  Scenario: ID_016_Attempt to edit a cancelled event (Error Flow)
     Given "dana.lee@mail.mcgill.ca" is logged in with role "Club Owner"
     When the user changes the "location" of the event "Demo Night" to "Trottier 0100"
     Then the event "Demo Night" is unchanged
     And the message "Cancelled events cannot be edited" is issued
 
-  Scenario: Attempt to edit an event as a user who is not the club owner (Error Flow)
+  Scenario: ID_016_Attempt to edit an event as a user who is not the club owner (Error Flow)
     Given "evan.roy@mail.mcgill.ca" is logged in with role "User"
     When the user changes the "location" of the event "Robotics Workshop" to "Trottier 0100"
     Then the event "Robotics Workshop" is unchanged
