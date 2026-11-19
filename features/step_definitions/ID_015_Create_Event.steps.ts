@@ -120,12 +120,6 @@ Then(
   },
 );
 
-Then('the event {string} has a capacity of {int}', async function (title: string, capacity: number) {
-  const event = await prisma.event.findFirst({ where: { title } });
-  assert.ok(event, `Event "${title}" does not exist`);
-  assert.equal(event.capacity, capacity);
-});
-
 Then('no event is created', async function () {
   assert.equal(await prisma.event.count(), 0);
 });

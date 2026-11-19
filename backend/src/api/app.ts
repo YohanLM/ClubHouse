@@ -5,9 +5,17 @@
 // createEvent) here.
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { createAccount } from '../services/createAccount';
 import { LOGIN_ERRORS, login } from '../services/login';
 import { listClubs } from '../services/listClubs';
+import { FOLLOW_CLUB_ERRORS, followClub, type FollowClubError } from '../services/followClub';
+import { listFollowedClubs } from '../services/listFollowedClubs';
 import { createEvent } from '../services/createEvent';
+import {
+  RSVP_TO_EVENT_ERRORS,
+  rsvpToEvent,
+  type RsvpToEventError,
+} from '../services/rsvpToEvent';
 import { SessionStore } from './sessions';
 
 /** A string field of the JSON body, or undefined when missing or not a string. */
@@ -15,6 +23,22 @@ function bodyField(req: Request, name: string): string | undefined {
   const value: unknown = req.body?.[name];
   return typeof value === 'string' ? value : undefined;
 }
+
+/** HTTP status of each followClub error. */
+const FOLLOW_CLUB_STATUS: Record<FollowClubError, number> = {
+  [FOLLOW_CLUB_ERRORS.loginRequired]: 401,
+  [FOLLOW_CLUB_ERRORS.clubNotFound]: 404,
+  [FOLLOW_CLUB_ERRORS.clubInactive]: 400,
+};
+
+const RSVP_TO_EVENT_STATUS: Record<RsvpToEventError, number> = {
+  [RSVP_TO_EVENT_ERRORS.loginRequired]: 401,
+  [RSVP_TO_EVENT_ERRORS.eventNotFound]: 404,
+  [RSVP_TO_EVENT_ERRORS.eventCancelled]: 400,
+  [RSVP_TO_EVENT_ERRORS.alreadyTakenPlace]: 400,
+  [RSVP_TO_EVENT_ERRORS.eventFull]: 400,
+  [RSVP_TO_EVENT_ERRORS.invalidResponse]: 400,
+};
 
 /** The token of an "Authorization: Bearer <token>" header. */
 function bearerToken(req: Request): string | undefined {
@@ -43,6 +67,28 @@ export function createApp(prisma: PrismaClient, sessions = new SessionStore()) {
 
   /** Id of the logged-in account, or null when nobody is logged in. */
   const actorId = (req: Request) => sessions.get(bearerToken(req))?.accountId ?? null;
+
+  // ID_001 Create Account: no login needed, the new account has the USER role
+  app.post('/accounts', async (req, res) => {
+    const result = await createAccount(
+      {
+        name: bodyField(req, 'name'),
+        email: bodyField(req, 'email'),
+        password: bodyField(req, 'password'),
+        faculty: bodyField(req, 'faculty')?.trim() || null,
+        studyYear: bodyField(req, 'studyYear')?.trim() || null,
+      },
+      prisma,
+    );
+
+    if (!result.success) {
+      const duplicate = result.message === 'Email already registered';
+      res.status(duplicate ? 409 : 400).json({ message: result.message });
+      return;
+    }
+
+    res.status(201).json({ message: result.message, account: result.account });
+  });
 
   // ID_002 Log In: the returned token identifies the user in the next requests
   app.post('/login', async (req, res) => {
@@ -73,7 +119,45 @@ export function createApp(prisma: PrismaClient, sessions = new SessionStore()) {
 
     res.json({ clubs: result.clubs });
   });
-  
+
+  // ID_011 Follow Club: ids of the clubs the logged-in user follows
+  app.get('/follows', async (req, res) => {
+    const result = await listFollowedClubs({ actorId: actorId(req) }, prisma);
+
+    if (!result.success) {
+      res.status(401).json({ message: result.message });
+      return;
+    }
+
+    res.json({ clubIds: result.clubIds });
+  });
+
+  // ID_011 Follow Club: following an already followed club is not an error
+  app.post('/clubs/:clubId/follow', async (req, res) => {
+    const clubIdParam = String(req.params.clubId);
+
+    if (!/^[1-9]\d*$/.test(clubIdParam) || !Number.isSafeInteger(Number(clubIdParam))) {
+      res.status(404).json({ message: FOLLOW_CLUB_ERRORS.clubNotFound });
+      return;
+    }
+
+    const result = await followClub(
+      { actorId: actorId(req), clubId: Number(clubIdParam) },
+      prisma,
+    );
+
+    if (!result.success) {
+      res.status(FOLLOW_CLUB_STATUS[result.message]).json({ message: result.message });
+      return;
+    }
+
+    res.json({
+      message: result.message,
+      clubId: result.clubId,
+      followerCount: result.followerCount,
+    });
+  });
+
   // ID_015 - Create Event (T043)
   app.post('/events', async (req, res) => {
     const userId = actorId(req);
@@ -134,6 +218,37 @@ export function createApp(prisma: PrismaClient, sessions = new SessionStore()) {
     res.status(201).json({
       message: result.message,
       event: result.event,
+    });
+  });
+
+  // ID_020 RSVP to Event
+  app.post('/events/:eventId/rsvp', async (req, res) => {
+    const eventIdParam = String(req.params.eventId);
+
+    if (!/^[1-9]\d*$/.test(eventIdParam) || !Number.isSafeInteger(Number(eventIdParam))) {
+      res.status(404).json({ message: RSVP_TO_EVENT_ERRORS.eventNotFound });
+      return;
+    }
+
+    const result = await rsvpToEvent(
+      {
+        actorId: actorId(req),
+        eventId: Number(eventIdParam),
+        response: bodyField(req, 'response'),
+      },
+      prisma,
+    );
+
+    if (!result.success) {
+      res.status(RSVP_TO_EVENT_STATUS[result.message]).json({ message: result.message });
+      return;
+    }
+
+    res.json({
+      message: result.message,
+      eventId: result.eventId,
+      response: result.response,
+      attendeeCount: result.attendeeCount,
     });
   });
 

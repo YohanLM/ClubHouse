@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 
+import CreateAccountScreen, { AccountData } from './CreateAccountScreen';
 import CreateClubScreen from './CreateClubScreen';
 import CreateEventForm, { EventData } from './CreateEventForm';
 import LoginScreen from './LoginScreen';
@@ -114,6 +115,18 @@ function AppScreens() {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(event),
+    });
+
+    await readResponse(response);
+  }
+
+  async function handleCreateAccount(account: AccountData) {
+    const response = await fetch(`${API}/accounts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(account),
     });
 
     await readResponse(response);
