@@ -32,6 +32,7 @@ export interface CalendarEvent {
   startTime: string;
   endTime: string;
   location: string;
+  attendeeCount: number;
 }
 
 export type GetCalendarResult =
@@ -72,7 +73,14 @@ export async function getCalendar(
       status: 'SCHEDULED',
       date: to ? { gte: start, lte: to } : { gte: start },
     },
-    include: { club: { select: { name: true } } },
+    include: {
+      club: { select: { name: true } },
+      _count: {
+        select: {
+          rsvps: { where: { response: 'ATTENDING' } },
+        },
+      },
+    },
     orderBy: [{ date: 'asc' }, { startTime: 'asc' }, { title: 'asc' }],
   });
 
@@ -88,6 +96,7 @@ export async function getCalendar(
       startTime: event.startTime,
       endTime: event.endTime,
       location: event.location,
+      attendeeCount: event._count.rsvps,
     })),
   };
 }

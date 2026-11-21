@@ -39,6 +39,7 @@ export interface CreatedEvent {
   location: string;
   capacity: number | null;
   status: string;
+  attendeeCount: number;
 }
 
 export type CreateEventResult =
@@ -177,6 +178,7 @@ export async function createEvent(
       location: event.location,
       capacity: event.capacity,
       status: event.status,
+      attendeeCount: 0,
     },
   };
 }

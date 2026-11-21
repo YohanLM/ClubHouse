@@ -21,6 +21,7 @@ const debateFinals = {
   location: 'Leacock 132',
   status: 'SCHEDULED',
   club: { name: 'Debate Union' },
+  _count: { rsvps: 3 },
 };
 
 beforeEach(() => {
@@ -49,12 +50,16 @@ test('lists upcoming scheduled events in chronological order with their club nam
         startTime: '17:00',
         endTime: '19:00',
         location: 'Leacock 132',
+        attendeeCount: 3,
       },
     ],
   });
   expect(findManyArgs()).toEqual({
     where: { status: 'SCHEDULED', date: { gte: '2026-11-15' } },
-    include: { club: { select: { name: true } } },
+    include: {
+      club: { select: { name: true } },
+      _count: { select: { rsvps: { where: { response: 'ATTENDING' } } } },
+    },
     orderBy: [{ date: 'asc' }, { startTime: 'asc' }, { title: 'asc' }],
   });
 });

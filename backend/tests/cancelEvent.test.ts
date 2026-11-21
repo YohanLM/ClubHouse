@@ -5,6 +5,7 @@ import { MAX_CANCELLATION_REASON_LENGTH } from '../src/services/eventStatus';
 const prisma = {
   event: { findUnique: jest.fn(), updateMany: jest.fn() },
   account: { findUnique: jest.fn() },
+  rSVP: { count: jest.fn() },
 } as unknown as PrismaClient;
 
 const OWNER_ID = 2;
@@ -28,6 +29,7 @@ beforeEach(() => {
     role: 'CLUB_OWNER',
   } as never);
   jest.mocked(prisma.event.updateMany).mockResolvedValue({ count: 1 });
+  jest.mocked(prisma.rSVP.count).mockResolvedValue(2);
 });
 
 test('cancels a scheduled event with a trimmed reason', async () => {
@@ -42,7 +44,11 @@ test('cancels a scheduled event with a trimmed reason', async () => {
       title: 'Robotics Workshop',
       status: 'CANCELLED',
       cancellationReason: 'Speaker sick',
+      attendeeCount: 2,
     },
+  });
+  expect(prisma.rSVP.count).toHaveBeenCalledWith({
+    where: { eventId: 20, response: 'ATTENDING' },
   });
   expect(prisma.event.updateMany).toHaveBeenCalledWith({
     where: { id: 20, status: 'SCHEDULED' },
