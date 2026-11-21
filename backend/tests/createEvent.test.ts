@@ -60,6 +60,7 @@ test('creates an event successfully', async () => {
     event: {
       status: 'SCHEDULED',
       capacity: null,
+      attendeeCount: 0,
     },
   });
 

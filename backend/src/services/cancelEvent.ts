@@ -28,6 +28,7 @@ export interface CancelledEvent {
   title: string;
   status: string;
   cancellationReason: string | null;
+  attendeeCount: number;
 }
 
 export type CancelEventResult =
@@ -93,6 +94,10 @@ export async function cancelEvent(
     );
   }
 
+  const attendeeCount = await prisma.rSVP.count({
+    where: { eventId: event.id, response: 'ATTENDING' },
+  });
+
   return {
     success: true,
     message: 'Event cancelled',
@@ -102,6 +107,7 @@ export async function cancelEvent(
       title: event.title,
       status: 'CANCELLED',
       cancellationReason: change.cancellationReason,
+      attendeeCount,
     },
   };
 }

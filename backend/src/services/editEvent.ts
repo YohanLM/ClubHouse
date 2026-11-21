@@ -47,6 +47,7 @@ export interface EditedEvent {
   location: string;
   capacity: number | null;
   status: string;
+  attendeeCount: number;
 }
 
 export type EditEventResult =
@@ -167,6 +168,10 @@ export async function editEvent(
     );
   }
 
+  const attendeeCount = await prisma.rSVP.count({
+    where: { eventId: event.id, response: 'ATTENDING' },
+  });
+
   return {
     success: true,
     message: 'Event updated',
@@ -181,6 +186,7 @@ export async function editEvent(
       location,
       capacity,
       status: 'SCHEDULED',
+      attendeeCount,
     },
   };
 }
