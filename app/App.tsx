@@ -16,6 +16,7 @@ import CreateClubScreen from './CreateClubScreen';
 import CreateEventForm, { EventData } from './CreateEventForm';
 import LoginScreen from './LoginScreen';
 import ClubsScreen from './src/screens/ClubsScreen';
+import EventsScreen from './src/screens/EventsScreen';
 import { SessionProvider, useSession, type Session } from './src/session';
 
 const API = 'http://localhost:3000';
@@ -26,7 +27,7 @@ type Club = {
   category: string;
 };
 
-type Screen = 'login' | 'club' | 'event' | 'clubs';
+type Screen = 'login' | 'club' | 'event' | 'clubs' | 'events';
 
 async function readResponse(response: Response) {
   const data = await response.json();
@@ -260,6 +261,23 @@ function AppScreens() {
             Clubs
           </Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.navButton,
+            screen === 'events' && styles.activeButton,
+          ]}
+          onPress={() => setScreen('events')}
+        >
+          <Text
+            style={[
+              styles.navText,
+              screen === 'events' && styles.activeText,
+            ]}
+          >
+            Events
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.flex}>
@@ -275,7 +293,9 @@ function AppScreens() {
             ? <CreateClubScreen />
             : screen === 'clubs'
               ? <ClubsScreen />
-              : renderEventScreen()}
+              : screen === 'events'
+                ? <EventsScreen />
+                : renderEventScreen()}
       </View>
     </View>
   );
