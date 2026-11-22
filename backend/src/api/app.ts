@@ -10,6 +10,7 @@ import { LOGIN_ERRORS, login } from '../services/login';
 import { listClubs } from '../services/listClubs';
 import { FOLLOW_CLUB_ERRORS, followClub, type FollowClubError } from '../services/followClub';
 import { listFollowedClubs } from '../services/listFollowedClubs';
+import { getCalendar } from '../services/getCalendar';
 import { createEvent } from '../services/createEvent';
 import {
   RSVP_TO_EVENT_ERRORS,
@@ -219,6 +220,21 @@ export function createApp(prisma: PrismaClient, sessions = new SessionStore()) {
       message: result.message,
       event: result.event,
     });
+  });
+
+  // Get upcoming events for the RSVP screen
+  app.get('/events/calendar', async (req, res) => {
+    const result = await getCalendar(
+      { actorId: actorId(req) },
+      prisma
+    );
+
+    if (!result.success) {
+      res.status(401).json({ message: result.message });
+      return;
+    }
+
+    res.json({ events: result.events });
   });
 
   // ID_020 RSVP to Event
