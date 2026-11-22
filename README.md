@@ -30,7 +30,7 @@ Prisma uses `backend/prisma/.env` for the local SQLite database. Acceptance test
 | `npm test`                | Runs the backend unit tests |
 | `npm run test:acceptance` | Runs the acceptance tests (Cucumber, set up in T003) |
 | `npm run app`             | Starts the Expo dev server |
-| `npm run db:setup`        | Creates your local database and adds demo accounts and clubs |
+| `npm run db:setup`        | Creates your local database and adds demo accounts, clubs and events |
 | `npm run api`             | Starts the HTTP API used by the app (http://localhost:3000) |
 
 ## Running the API
@@ -42,7 +42,8 @@ npm run db:setup   # once: local database + demo data
 npm run api
 ```
 
-- Demo accounts (password `Passw0rd!23`): `admin.clubhouse@mcgill.ca` (Administrator), `alice.tremblay@mail.mcgill.ca` (User), `dana.lee@mail.mcgill.ca` (Club Owner, owns the demo clubs).
+- Demo accounts (password `Passw0rd!23`): `admin.clubhouse@mcgill.ca` (Administrator), `alice.tremblay@mail.mcgill.ca` and `bob.chen@mcgill.ca` (Users), `dana.lee@mail.mcgill.ca` (Club Owner of Robotics Club and Debate Union), `evan.roy@mail.mcgill.ca` (Club Owner of Jazz Society and Ski Club, inactive).
+- Demo events (`backend/prisma/demoData.ts`): 6 upcoming scheduled events, 1 cancelled and 1 completed. Their dates are relative to the day you run `db:setup`, so run it again shortly before a demo on a fresh database (`backend/prisma/dev.db` deleted) to get dates that are still upcoming. Running it again on an existing database adds only what is missing.
 - `POST /login` with `{ "email", "password" }` returns `{ token, session }`. Send the token in an `Authorization: Bearer <token>` header in the next requests.
 - `GET /clubs` returns `{ clubs }` (active clubs in alphabetical order), or `401 { message: "Login required" }`.
 - `POST /clubs/:clubId/follow` follows the club and returns `{ message, clubId, followerCount }` (`Club followed`, or `Club already followed` when it was already followed). Errors: `401 Login required`, `404 Club not found`, `400 Club is inactive`.
