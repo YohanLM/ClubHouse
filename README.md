@@ -32,6 +32,7 @@ Prisma uses `backend/prisma/.env` for the local SQLite database. Acceptance test
 | `npm run app`             | Starts the Expo dev server |
 | `npm run db:setup`        | Creates your local database and adds demo accounts, clubs and events |
 | `npm run api`             | Starts the HTTP API used by the app (http://localhost:3000) |
+| `npm run measure:calendar` | Measures the calendar load time with 100 events (NFR ID_033, see `docs/nfr-ID_033-calendar-load-time.md`) |
 
 ## Running the API
 

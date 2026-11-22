@@ -16,7 +16,8 @@
     "test:acceptance": "npm run test -w features",
     "app": "npm run start -w app",
     "api": "npm run api -w backend",
-    "db:setup": "npm run db:setup -w backend"
+    "db:setup": "npm run db:setup -w backend",
+    "measure:calendar": "npm run measure:calendar -w backend --"
   },
   "dependencies": {
     "react-dom": "19.2.3",

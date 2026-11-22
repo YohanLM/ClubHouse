@@ -11,6 +11,7 @@
     "test": "jest --passWithNoTests",
     "api": "tsx src/api/server.ts",
     "db:setup": "prisma migrate deploy && tsx prisma/seed.ts",
+    "measure:calendar": "tsx scripts/measureCalendarLoad.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init"
   },
