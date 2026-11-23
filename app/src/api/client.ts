@@ -7,7 +7,7 @@ export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000
 export type ApiResult<T> = ({ success: true } & T) | { success: false; message: string };
 
 interface RequestOptions {
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PATCH';
   /** Session token of the logged-in user, if any. */
   token?: string | null;
   /** Sent as JSON. */
