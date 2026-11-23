@@ -2,21 +2,14 @@
 // Only the owner of the event's club can edit it, and only while the event is
 // SCHEDULED. Fields left undefined are unchanged; capacity null removes the limit.
 import { PrismaClient } from '@prisma/client';
-import { CREATE_EVENT_ERRORS, type Clock } from './createEvent';
+import { EVENT_VALIDATION_ERRORS, validateEvent, type Clock } from './eventValidation';
 
 export const EDIT_EVENT_ERRORS = {
-  unauthorized: CREATE_EVENT_ERRORS.unauthorized,
+  unauthorized: 'Unauthorized user',
   eventNotFound: 'Event not found',
   cancelled: 'Cancelled events cannot be edited',
   completed: 'Completed events cannot be edited',
-  titleRequired: CREATE_EVENT_ERRORS.titleRequired,
-  categoryRequired: CREATE_EVENT_ERRORS.categoryRequired,
-  dateInvalid: CREATE_EVENT_ERRORS.dateInvalid,
-  datePast: CREATE_EVENT_ERRORS.datePast,
-  timeInvalid: CREATE_EVENT_ERRORS.timeInvalid,
-  endBeforeStart: CREATE_EVENT_ERRORS.endBeforeStart,
-  locationRequired: CREATE_EVENT_ERRORS.locationRequired,
-  capacityInvalid: CREATE_EVENT_ERRORS.capacityInvalid,
+  ...EVENT_VALIDATION_ERRORS,
 } as const;
 
 export type EditEventError =
@@ -56,36 +49,6 @@ export type EditEventResult =
 
 function fail(message: EditEventError): EditEventResult {
   return { success: false, message };
-}
-
-function isValidDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-
-  const [year, month, day] = value.split('-').map(Number);
-  const actual = new Date(Date.UTC(year, month - 1, day));
-
-  return (
-    actual.getUTCFullYear() === year &&
-    actual.getUTCMonth() + 1 === month &&
-    actual.getUTCDate() === day
-  );
-}
-
-function isValidTime(value: string): boolean {
-  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
-}
-
-function todayInMontreal(now: Date): string {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Toronto',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(now);
-
-  const value = (type: string) => parts.find(part => part.type === type)!.value;
-
-  return `${value('year')}-${value('month')}-${value('day')}`;
 }
 
 export async function editEvent(
@@ -131,27 +94,12 @@ export async function editEvent(
   const location = pick(input.location, event.location);
   const capacity = input.capacity === undefined ? event.capacity : input.capacity;
 
-  if (!title) return fail(EDIT_EVENT_ERRORS.titleRequired);
-  if (!category) return fail(EDIT_EVENT_ERRORS.categoryRequired);
-
-  if (!isValidDate(date)) return fail(EDIT_EVENT_ERRORS.dateInvalid);
-
-  // The date is only checked against today when it is being changed
-  if (date !== event.date && date < todayInMontreal(clock())) {
-    return fail(EDIT_EVENT_ERRORS.datePast);
-  }
-
-  if (!isValidTime(startTime) || !isValidTime(endTime)) {
-    return fail(EDIT_EVENT_ERRORS.timeInvalid);
-  }
-
-  if (endTime <= startTime) return fail(EDIT_EVENT_ERRORS.endBeforeStart);
-
-  if (!location) return fail(EDIT_EVENT_ERRORS.locationRequired);
-
-  if (capacity != null && (!Number.isSafeInteger(capacity) || capacity <= 0)) {
-    return fail(EDIT_EVENT_ERRORS.capacityInvalid);
-  }
+  const validationError = validateEvent(
+    { title, category, date, startTime, endTime, location, capacity },
+    clock,
+    event.date,
+  );
+  if (validationError) return fail(validationError);
 
   // 6. Save, guarding on the status so a concurrent cancel is not overwritten
   const { count } = await prisma.event.updateMany({
