@@ -12,6 +12,8 @@ import { FOLLOW_CLUB_ERRORS, followClub, type FollowClubError } from '../service
 import { listFollowedClubs } from '../services/listFollowedClubs';
 import { getCalendar } from '../services/getCalendar';
 import { createEvent } from '../services/createEvent';
+import { EDIT_EVENT_ERRORS, editEvent, type EditEventError } from '../services/editEvent';
+import { listOwnedEvents } from '../services/listOwnedEvents';
 import {
   RSVP_TO_EVENT_ERRORS,
   rsvpToEvent,
@@ -31,6 +33,14 @@ const FOLLOW_CLUB_STATUS: Record<FollowClubError, number> = {
   [FOLLOW_CLUB_ERRORS.clubNotFound]: 404,
   [FOLLOW_CLUB_ERRORS.clubInactive]: 400,
 };
+
+/** HTTP status of the editEvent errors that are not validation errors (400). */
+const EDIT_EVENT_STATUS: Partial<Record<EditEventError, number>> = {
+  [EDIT_EVENT_ERRORS.unauthorized]: 403,
+  [EDIT_EVENT_ERRORS.eventNotFound]: 404,
+};
+
+const EDITABLE_EVENT_FIELDS = ['title', 'category', 'date', 'startTime', 'endTime', 'location'] as const;
 
 const RSVP_TO_EVENT_STATUS: Record<RsvpToEventError, number> = {
   [RSVP_TO_EVENT_ERRORS.loginRequired]: 401,
@@ -57,7 +67,7 @@ export function createApp(prisma: PrismaClient, sessions = new SessionStore()) {
     res.set({
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-      'Access-Control-Allow-Methods': 'GET, POST',
+      'Access-Control-Allow-Methods': 'GET, POST, PATCH',
     });
     if (req.method === 'OPTIONS') {
       res.sendStatus(204);
@@ -235,6 +245,71 @@ export function createApp(prisma: PrismaClient, sessions = new SessionStore()) {
     }
 
     res.json({ events: result.events });
+  });
+
+  // ID_016 Edit Event (T065): the scheduled events the Club Owner can edit
+  app.get('/events/owned', async (req, res) => {
+    const result = await listOwnedEvents({ actorId: actorId(req) }, prisma);
+
+    if (!result.success) {
+      res.status(401).json({ message: result.message });
+      return;
+    }
+
+    res.json({ events: result.events });
+  });
+
+  // ID_016 Edit Event (T065): only the fields present in the body change,
+  // capacity null removes the limit
+  app.patch('/events/:eventId', async (req, res) => {
+    const userId = actorId(req);
+
+    if (userId === null) {
+      res.status(401).json({ message: 'Login required' });
+      return;
+    }
+
+    const eventIdParam = String(req.params.eventId);
+
+    if (!/^[1-9]\d*$/.test(eventIdParam) || !Number.isSafeInteger(Number(eventIdParam))) {
+      res.status(404).json({ message: EDIT_EVENT_ERRORS.eventNotFound });
+      return;
+    }
+
+    const body: Record<string, unknown> = req.body ?? {};
+    const capacity = body.capacity;
+
+    if (
+      capacity !== undefined &&
+      capacity !== null &&
+      (typeof capacity !== 'number' || !Number.isSafeInteger(capacity))
+    ) {
+      res.status(400).json({ message: EDIT_EVENT_ERRORS.capacityInvalid });
+      return;
+    }
+
+    const changes: Record<string, string> = {};
+    for (const name of EDITABLE_EVENT_FIELDS) {
+      const value = bodyField(req, name);
+      if (value !== undefined) changes[name] = value;
+    }
+
+    const result = await editEvent(
+      {
+        actorId: userId,
+        eventId: Number(eventIdParam),
+        ...changes,
+        ...(capacity !== undefined && { capacity: capacity as number | null }),
+      },
+      prisma
+    );
+
+    if (!result.success) {
+      res.status(EDIT_EVENT_STATUS[result.message] ?? 400).json({ message: result.message });
+      return;
+    }
+
+    res.json({ message: result.message, event: result.event });
   });
 
   // ID_020 RSVP to Event

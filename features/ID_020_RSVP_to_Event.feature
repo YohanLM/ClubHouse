@@ -13,7 +13,7 @@ Feature: RSVP to Event
       | Demo Night        | 2026-12-10 | Cancelled |
     And "alice.tremblay@mail.mcgill.ca" is logged in with role "User"
 
-  Scenario Outline: RSVP to an upcoming event (Normal Flow)
+  Scenario Outline: ID_020_RSVP to an upcoming event (Normal Flow)
     Given no RSVP exists for "alice.tremblay@mail.mcgill.ca" on the event "Robotics Workshop"
     When the user RSVPs "<Response>" to the event "Robotics Workshop"
     Then the RSVP of "alice.tremblay@mail.mcgill.ca" for the event "Robotics Workshop" is "<Response>"
@@ -25,14 +25,14 @@ Feature: RSVP to Event
       | Attending     | 1         |
       | Not Attending | 0         |
 
-  Scenario: Change an existing RSVP (Alternate Flow)
+  Scenario: ID_020_Change an existing RSVP (Alternate Flow)
     Given "alice.tremblay@mail.mcgill.ca" has RSVPed "Attending" to the event "Robotics Workshop"
     When the user RSVPs "Not Attending" to the event "Robotics Workshop"
     Then the RSVP of "alice.tremblay@mail.mcgill.ca" for the event "Robotics Workshop" is "Not Attending"
     And the number of attendees of the event "Robotics Workshop" is 0
     And the message "RSVP saved" is issued
 
-  Scenario Outline: Attempt to RSVP to an event that cannot be attended (Error Flow)
+  Scenario Outline: ID_020_Attempt to RSVP to an event that cannot be attended (Error Flow)
     When the user RSVPs "Attending" to the event "<Title>"
     Then no RSVP is saved for "alice.tremblay@mail.mcgill.ca" on the event "<Title>"
     And the message "<Message>" is issued
@@ -42,14 +42,14 @@ Feature: RSVP to Event
       | Robotics Kickoff | Event has already taken place |
       | Demo Night       | Event is cancelled            |
 
-  Scenario: Attempt to RSVP to an event that has reached its capacity (Error Flow)
+  Scenario: ID_020_Attempt to RSVP to an event that has reached its capacity (Error Flow)
     Given the event "Robotics Workshop" has a capacity of 1
     And "bob.chen@mcgill.ca" has RSVPed "Attending" to the event "Robotics Workshop"
     When the user RSVPs "Attending" to the event "Robotics Workshop"
     Then no RSVP is saved for "alice.tremblay@mail.mcgill.ca" on the event "Robotics Workshop"
     And the message "Event is full" is issued
 
-  Scenario: Attempt to RSVP with an invalid response (Error Flow)
+  Scenario: ID_020_Attempt to RSVP with an invalid response (Error Flow)
     When the user RSVPs "Maybe" to the event "Robotics Workshop"
     Then no RSVP is saved for "alice.tremblay@mail.mcgill.ca" on the event "Robotics Workshop"
     And the message "Invalid RSVP response" is issued

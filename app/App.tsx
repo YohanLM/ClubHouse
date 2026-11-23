@@ -16,6 +16,7 @@ import CreateClubScreen from './CreateClubScreen';
 import CreateEventForm, { EventData } from './CreateEventForm';
 import LoginScreen from './LoginScreen';
 import ClubsScreen from './src/screens/ClubsScreen';
+import EditEventScreen from './src/screens/EditEventScreen';
 import EventsScreen from './src/screens/EventsScreen';
 import { SessionProvider, useSession, type Session } from './src/session';
 
@@ -27,7 +28,7 @@ type Club = {
   category: string;
 };
 
-type Screen = 'login' | 'club' | 'event' | 'clubs' | 'events';
+type Screen = 'login' | 'club' | 'event' | 'editEvent' | 'clubs' | 'events';
 
 async function readResponse(response: Response) {
   const data = await response.json();
@@ -231,6 +232,23 @@ function AppScreens() {
         <TouchableOpacity
           style={[
             styles.navButton,
+            screen === 'editEvent' && styles.activeButton,
+          ]}
+          onPress={() => setScreen('editEvent')}
+        >
+          <Text
+            style={[
+              styles.navText,
+              screen === 'editEvent' && styles.activeText,
+            ]}
+          >
+            Edit Event
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.navButton,
             screen === 'club' && styles.activeButton,
           ]}
           onPress={() => setScreen('club')}
@@ -289,6 +307,8 @@ function AppScreens() {
               }
             />
           )
+          : screen === 'editEvent'
+            ? <EditEventScreen />
           : screen === 'club'
             ? <CreateClubScreen />
             : screen === 'clubs'
