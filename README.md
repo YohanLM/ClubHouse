@@ -73,7 +73,7 @@ Run everything from the repo root, after `npm install`.
 npm test
 ```
 
-Runs the tests in `backend/tests/`. Prisma is mocked, so no database is needed.
+Runs the tests in `backend/tests/`. Prisma is mocked, so no database is needed. HTTP API tests use a local server through Supertest and require permission to connect to localhost.
 
 ### Acceptance tests (Cucumber)
 
@@ -81,12 +81,51 @@ Runs the tests in `backend/tests/`. Prisma is mocked, so no database is needed.
 npm run test:acceptance
 ```
 
-- Runs the 5 feature files in `features/` (19 scenarios, 39 once Scenario Outline examples are expanded).
+- Runs all feature files in `features/`, including the Sprint B stories listed below. Scenario Outline rows run as separate test cases.
 - Uses a separate SQLite test database (`test.db`), created automatically. Your local database is never touched.
 - All tables are cleared before each scenario.
 - Each scenario name starts with its story ID (`ID_xxx_<scenario>`). The output lists every test on its own line (`✔ ID_xxx_<scenario>`), grouped by feature file, so it shows which story and scenario each test checks.
-- Expected result: `39 scenarios (39 passed)`.
+- A successful run reports every scenario as passed. Undefined steps cause a nonzero exit code and need matching TypeScript definitions.
 - An HTML report is also written to `reports/cucumber.html` (uploaded as an artifact by CI).
+
+### Sprint B stories
+
+| Story | Behavior | Feature file in `features/` |
+|-------|----------|-------------------------------|
+| ID_009 | Search clubs by keyword or category | `ID_009_Search_Clubs.feature` |
+| ID_010 | View a club page and its events | `ID_010_View_Club_Page.feature` |
+| ID_011 | Follow an active club and handle duplicate follows | `ID_011_Follow_Club.feature` |
+| ID_016 | Edit event details with ownership, status and capacity rules | `ID_016_Edit_Event.feature` |
+| ID_017 | Cancel a scheduled event with an optional reason | `ID_017_Cancel_Event.feature` |
+| ID_019 | View upcoming scheduled events with date and followed-club filters | `ID_019_View_Upcoming_Events_Calendar.feature` |
+| ID_020 | Save or change an RSVP and enforce event availability and capacity | `ID_020_RSVP_to_Event.feature` |
+
+Run `npm run test:acceptance` to include all these stories. To run one feature, first prepare the test database, then select its filename. These commands work from the repo root in PowerShell and Bash.
+
+```bash
+npm exec --workspace=features -- cross-env DATABASE_URL=file:./test.db prisma db push --schema=../backend/prisma/schema.prisma
+npm exec --workspace=features -- cross-env DATABASE_URL=file:./test.db NODE_OPTIONS=--import=tsx cucumber-js --import "support/**/*.ts" --import "step_definitions/**/*.ts" ID_016_Edit_Event.feature
+```
+
+Replace `ID_016_Edit_Event.feature` with any filename in the table, or supply several filenames separated by spaces. Keep both import patterns so shared setup, hooks and assertions load.
+
+In this checkout, ID_009 and ID_010 still have undefined steps. Their Gherkin files are present, and the full acceptance run reports them as undefined until their step definitions are implemented.
+
+### Shared event validation (T092 and T095)
+
+`backend/src/services/eventValidation.ts` contains the field validation used by both `createEvent` and `editEvent`. It checks required fields, calendar dates, Montreal's current date, time format and ordering, and optional positive integer capacity. Services trim supplied fields before validation. Editing merges omitted fields with stored values and allows an unchanged past date. Passing `capacity: null` removes a capacity limit.
+
+Run the validator tests, service regression checks and existing create-event tests together.
+
+```bash
+npm test --workspace=backend -- --runInBand eventValidation.test.ts eventValidationServices.test.ts createEvent.test.ts
+```
+
+Other existing Sprint B service tests can be selected the same way.
+
+```bash
+npm test --workspace=backend -- --runInBand cancelEvent.test.ts getCalendar.test.ts rsvpToEvent.test.ts listFollowedClubs.test.ts
+```
 
 ### Everything at once
 
@@ -94,7 +133,7 @@ npm run test:acceptance
 npm run build
 ```
 
-Compiles the backend, then runs the unit tests and the acceptance tests.
+Compiles the backend, typechecks the app, then runs the unit tests and the acceptance tests. Use `npm run typecheck` to also typecheck the step definitions.
 
 ### CI
 

@@ -1,16 +1,14 @@
 
 import { PrismaClient } from '@prisma/client';
 
+import { EVENT_VALIDATION_ERRORS, validateEvent, type Clock } from './eventValidation';
+
+// Preserve imports used by existing services and callers.
+export { isValidDate, todayInMontreal, type Clock } from './eventValidation';
+
 export const CREATE_EVENT_ERRORS = {
   unauthorized: 'Unauthorized user',
-  titleRequired: 'Title is required',
-  categoryRequired: 'Category is required',
-  dateInvalid: 'Invalid event date',
-  datePast: 'Event date cannot be past',
-  timeInvalid: 'Invalid event time',
-  endBeforeStart: 'End time must be after start',
-  locationRequired: 'Location is required',
-  capacityInvalid: 'Capacity must be a positive integer',
+  ...EVENT_VALIDATION_ERRORS,
 } as const;
 
 export type CreateEventError =
@@ -46,41 +44,8 @@ export type CreateEventResult =
   | { success: true; message: 'Event created'; event: CreatedEvent }
   | { success: false; message: CreateEventError };
 
-export type Clock = () => Date;
-
 function fail(message: CreateEventError): CreateEventResult {
   return { success: false, message };
-}
-
-export function isValidDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-
-  const [year, month, day] = value.split('-').map(Number);
-  const actual = new Date(Date.UTC(year, month - 1, day));
-
-  return (
-    actual.getUTCFullYear() === year &&
-    actual.getUTCMonth() + 1 === month &&
-    actual.getUTCDate() === day
-  );
-}
-
-function isValidTime(value: string): boolean {
-  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
-}
-
-export function todayInMontreal(now: Date): string {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Toronto',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(now);
-
-  const value = (type: string) =>
-    parts.find(part => part.type === type)!.value;
-
-  return `${value('year')}-${value('month')}-${value('day')}`;
 }
 
 export async function createEvent(
@@ -118,36 +83,11 @@ export async function createEvent(
   const endTime = input.endTime?.trim() ?? '';
   const location = input.location?.trim() ?? '';
 
-  if (!title) return fail(CREATE_EVENT_ERRORS.titleRequired);
-  if (!category) return fail(CREATE_EVENT_ERRORS.categoryRequired);
-
-  if (!isValidDate(date)) {
-    return fail(CREATE_EVENT_ERRORS.dateInvalid);
-  }
-
-  if (date < todayInMontreal(clock())) {
-    return fail(CREATE_EVENT_ERRORS.datePast);
-  }
-
-  if (!isValidTime(startTime) || !isValidTime(endTime)) {
-    return fail(CREATE_EVENT_ERRORS.timeInvalid);
-  }
-
-  if (endTime <= startTime) {
-    return fail(CREATE_EVENT_ERRORS.endBeforeStart);
-  }
-
-  if (!location) {
-    return fail(CREATE_EVENT_ERRORS.locationRequired);
-  }
-
-  // Capacity is optional but must be a positive integer
-  if (
-    input.capacity != null &&
-    (!Number.isSafeInteger(input.capacity) || input.capacity <= 0)
-  ) {
-    return fail(CREATE_EVENT_ERRORS.capacityInvalid);
-  }
+  const validationError = validateEvent(
+    { title, category, date, startTime, endTime, location, capacity: input.capacity },
+    clock,
+  );
+  if (validationError) return fail(validationError);
 
   // Save the event
   const event = await prisma.event.create({
