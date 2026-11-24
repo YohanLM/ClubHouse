@@ -17,6 +17,8 @@ import CreateEventForm, { EventData } from './CreateEventForm';
 import LoginScreen from './LoginScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
 import ClubsScreen from './src/screens/ClubsScreen';
+import EditEventScreen from './src/screens/EditEventScreen';
+import EventsScreen from './src/screens/EventsScreen';
 import { SessionProvider, useSession, type Session } from './src/session';
 
 const API = 'http://localhost:3000';
@@ -236,6 +238,23 @@ function AppScreens() {
         <TouchableOpacity
           style={[
             styles.navButton,
+            screen === 'editEvent' && styles.activeButton,
+          ]}
+          onPress={() => setScreen('editEvent')}
+        >
+          <Text
+            style={[
+              styles.navText,
+              screen === 'editEvent' && styles.activeText,
+            ]}
+          >
+            Edit Event
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.navButton,
             screen === 'club' && styles.activeButton,
           ]}
           onPress={() => setScreen('club')}
@@ -294,6 +313,8 @@ function AppScreens() {
               }
             />
           )
+          : screen === 'editEvent'
+            ? <EditEventScreen />
           : screen === 'club'
             ? <CreateClubScreen />
             : screen === 'clubs'

@@ -137,3 +137,128 @@ test('rejects an actor whose account no longer exists', async () => {
   expect(result).toEqual({ success: false, message: E.loginRequired });
   expect(prisma.event.findMany).not.toHaveBeenCalled();
 });
+
+test('looks up the account of the logged-in user', async () => {
+  await getCalendar({ actorId: USER_ID }, prisma, clock);
+
+  expect(prisma.account.findUnique).toHaveBeenCalledWith({ where: { id: USER_ID } });
+});
+
+test('returns an empty calendar when there are no upcoming events', async () => {
+  jest.mocked(prisma.event.findMany).mockResolvedValue([]);
+
+  const result = await getCalendar({ actorId: USER_ID }, prisma, clock);
+
+  expect(result).toEqual({ success: true, events: [] });
+});
+
+test('keeps the order returned by the database and maps every event', async () => {
+  const chessNight = {
+    ...debateFinals,
+    id: 5,
+    clubId: 30,
+    title: 'Chess Night',
+    category: 'Social',
+    date: '2026-11-16',
+    startTime: '18:00',
+    endTime: '21:00',
+    location: 'SSMU 107',
+    club: { name: 'Chess Club' },
+    _count: { rsvps: 0 },
+  };
+  jest.mocked(prisma.event.findMany).mockResolvedValue([chessNight, debateFinals] as never);
+
+  const result = await getCalendar({ actorId: USER_ID }, prisma, clock);
+
+  expect(result.success).toBe(true);
+  if (!result.success) return;
+  expect(result.events.map(e => e.title)).toEqual(['Chess Night', 'Debate Finals']);
+  expect(result.events[0]).toEqual({
+    id: 5,
+    clubId: 30,
+    clubName: 'Chess Club',
+    title: 'Chess Night',
+    category: 'Social',
+    date: '2026-11-16',
+    startTime: '18:00',
+    endTime: '21:00',
+    location: 'SSMU 107',
+    attendeeCount: 0,
+  });
+});
+
+test('does not expose internal fields such as the event status', async () => {
+  const result = await getCalendar({ actorId: USER_ID }, prisma, clock);
+
+  expect(result.success).toBe(true);
+  if (!result.success) return;
+  expect(result.events[0]).not.toHaveProperty('status');
+  expect(result.events[0]).not.toHaveProperty('club');
+  expect(result.events[0]).not.toHaveProperty('_count');
+});
+
+test('starts at a future "from" date with no upper limit when "to" is omitted', async () => {
+  await getCalendar({ actorId: USER_ID, from: '2026-12-01' }, prisma, clock);
+
+  expect(findManyArgs()?.where).toEqual({
+    status: 'SCHEDULED',
+    date: { gte: '2026-12-01' },
+  });
+});
+
+test('starts today when only "to" is given', async () => {
+  await getCalendar({ actorId: USER_ID, to: '2026-11-30' }, prisma, clock);
+
+  expect(findManyArgs()?.where).toEqual({
+    status: 'SCHEDULED',
+    date: { gte: '2026-11-15', lte: '2026-11-30' },
+  });
+});
+
+test('includes events happening today when "from" is today', async () => {
+  await getCalendar({ actorId: USER_ID, from: '2026-11-15' }, prisma, clock);
+
+  expect(findManyArgs()?.where).toMatchObject({ date: { gte: '2026-11-15' } });
+});
+
+test('treats blank or null range values as no limit', async () => {
+  const result = await getCalendar({ actorId: USER_ID, from: '', to: null }, prisma, clock);
+
+  expect(result.success).toBe(true);
+  expect(findManyArgs()?.where).toEqual({
+    status: 'SCHEDULED',
+    date: { gte: '2026-11-15' },
+  });
+});
+
+test('queries an empty window when the whole range is in the past', async () => {
+  jest.mocked(prisma.event.findMany).mockResolvedValue([]);
+
+  const result = await getCalendar(
+    { actorId: USER_ID, from: '2026-10-01', to: '2026-10-31' },
+    prisma,
+    clock,
+  );
+
+  expect(result).toEqual({ success: true, events: [] });
+  expect(findManyArgs()?.where).toEqual({
+    status: 'SCHEDULED',
+    date: { gte: '2026-11-15', lte: '2026-10-31' },
+  });
+});
+
+test('reports an invalid date before checking the range order', async () => {
+  const result = await getCalendar(
+    { actorId: USER_ID, from: '2026-12-31', to: '2026-02-30' },
+    prisma,
+    clock,
+  );
+
+  expect(result).toEqual({ success: false, message: E.invalidDate });
+});
+
+test('checks login before validating the dates', async () => {
+  const result = await getCalendar({ actorId: null, from: 'not-a-date' }, prisma, clock);
+
+  expect(result).toEqual({ success: false, message: E.loginRequired });
+});
