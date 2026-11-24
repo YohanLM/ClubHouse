@@ -10,6 +10,7 @@ import { LOGIN_ERRORS, login } from '../services/login';
 import { listClubs } from '../services/listClubs';
 import { FOLLOW_CLUB_ERRORS, followClub, type FollowClubError } from '../services/followClub';
 import { listFollowedClubs } from '../services/listFollowedClubs';
+import { getCalendar } from '../services/getCalendar';
 import { createEvent } from '../services/createEvent';
 import {
   RSVP_TO_EVENT_ERRORS,
@@ -21,6 +22,12 @@ import { SessionStore } from './sessions';
 /** A string field of the JSON body, or undefined when missing or not a string. */
 function bodyField(req: Request, name: string): string | undefined {
   const value: unknown = req.body?.[name];
+  return typeof value === 'string' ? value : undefined;
+}
+
+/** A string field of the query string, or undefined when missing or repeated. */
+function queryField(req: Request, name: string): string | undefined {
+  const value: unknown = req.query[name];
   return typeof value === 'string' ? value : undefined;
 }
 
@@ -130,6 +137,22 @@ export function createApp(prisma: PrismaClient, sessions = new SessionStore()) {
     }
 
     res.json({ clubIds: result.clubIds });
+  });
+
+  // ID_019 View Upcoming Events Calendar
+  app.get('/events/calendar', async (req, res) => {
+    const result = await getCalendar(
+      { actorId: actorId(req), from: queryField(req, 'from'), to: queryField(req, 'to') },
+      prisma,
+    );
+
+    if (!result.success) {
+      res.status(result.message === 'Login required' ? 401 : 400)
+        .json({ message: result.message });
+      return;
+    }
+
+    res.json({ events: result.events });
   });
 
   // ID_011 Follow Club: following an already followed club is not an error

@@ -15,6 +15,7 @@ import CreateAccountScreen, { AccountData } from './CreateAccountScreen';
 import CreateClubScreen from './CreateClubScreen';
 import CreateEventForm, { EventData } from './CreateEventForm';
 import LoginScreen from './LoginScreen';
+import CalendarScreen from './src/screens/CalendarScreen';
 import ClubsScreen from './src/screens/ClubsScreen';
 import { SessionProvider, useSession, type Session } from './src/session';
 
@@ -26,7 +27,7 @@ type Club = {
   category: string;
 };
 
-type Screen = 'login' | 'club' | 'event' | 'clubs';
+type Screen = 'login' | 'club' | 'event' | 'clubs' | 'calendar';
 
 async function readResponse(response: Response) {
   const data = await response.json();
@@ -192,7 +193,12 @@ function AppScreens() {
 
   return (
     <View style={styles.flex}>
-      <View style={styles.navigation}>
+      <ScrollView
+        horizontal
+        style={styles.navigationContainer}
+        contentContainerStyle={styles.navigation}
+        showsHorizontalScrollIndicator={false}
+      >
         <TouchableOpacity
           style={[
             styles.navButton,
@@ -260,7 +266,24 @@ function AppScreens() {
             Clubs
           </Text>
         </TouchableOpacity>
-      </View>
+
+        <TouchableOpacity
+          style={[
+            styles.navButton,
+            screen === 'calendar' && styles.activeButton,
+          ]}
+          onPress={() => setScreen('calendar')}
+        >
+          <Text
+            style={[
+              styles.navText,
+              screen === 'calendar' && styles.activeText,
+            ]}
+          >
+            Calendar
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
 
       <View style={styles.flex}>
         {screen === 'login'
@@ -275,6 +298,8 @@ function AppScreens() {
             ? <CreateClubScreen />
             : screen === 'clubs'
               ? <ClubsScreen />
+              : screen === 'calendar'
+                ? <CalendarScreen />
               : renderEventScreen()}
       </View>
     </View>
@@ -290,6 +315,9 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 10,
     backgroundColor: '#ffffff',
+  },
+  navigationContainer: {
+    flexGrow: 0,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
