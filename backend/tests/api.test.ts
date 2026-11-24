@@ -6,6 +6,7 @@ import { listClubs } from '../src/services/listClubs';
 import { createAccount } from '../src/services/createAccount';
 import { followClub } from '../src/services/followClub';
 import { listFollowedClubs } from '../src/services/listFollowedClubs';
+import { getCalendar } from '../src/services/getCalendar';
 
 // The services have their own unit tests: here they are simulated so that
 // only the HTTP layer (status codes, sessions, JSON) is tested.
@@ -20,6 +21,7 @@ jest.mock('../src/services/followClub', () => ({
   followClub: jest.fn(),
 }));
 jest.mock('../src/services/listFollowedClubs', () => ({ listFollowedClubs: jest.fn() }));
+jest.mock('../src/services/getCalendar', () => ({ getCalendar: jest.fn() }));
 
 const prisma = {} as PrismaClient;
 
@@ -300,6 +302,39 @@ describe('HTTP API', () => {
       expect(response.status).toBe(401);
       expect(response.body).toEqual({ message: 'Login required' });
       expect(listFollowedClubs).toHaveBeenCalledWith({ actorId: null }, prisma);
+    });
+  });
+
+  describe('GET /events/calendar', () => {
+
+    test('should return upcoming events with an optional date range', async () => {
+      const token = await loginAsAlice();
+      const events = [{ id: 3, title: 'Workshop' }];
+      jest.mocked(getCalendar).mockResolvedValue({ success: true, events } as never);
+
+      const response = await request(app)
+        .get('/events/calendar?from=2026-11-15&to=2026-11-30')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ events });
+      expect(getCalendar).toHaveBeenCalledWith(
+        { actorId: alice.accountId, from: '2026-11-15', to: '2026-11-30' },
+        prisma,
+      );
+    });
+
+    test.each([
+      [401, 'Login required'],
+      [400, 'Invalid date'],
+      [400, 'End date must be after start date'],
+    ])('should return %i for "%s"', async (status, message) => {
+      jest.mocked(getCalendar).mockResolvedValue({ success: false, message } as never);
+
+      const response = await request(app).get('/events/calendar');
+
+      expect(response.status).toBe(status);
+      expect(response.body).toEqual({ message });
     });
   });
 

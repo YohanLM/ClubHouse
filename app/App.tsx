@@ -15,6 +15,7 @@ import CreateAccountScreen, { AccountData } from './CreateAccountScreen';
 import CreateClubScreen from './CreateClubScreen';
 import CreateEventForm, { EventData } from './CreateEventForm';
 import LoginScreen from './LoginScreen';
+import CalendarScreen from './src/screens/CalendarScreen';
 import ClubsScreen from './src/screens/ClubsScreen';
 import EditEventScreen from './src/screens/EditEventScreen';
 import EventsScreen from './src/screens/EventsScreen';
@@ -28,7 +29,7 @@ type Club = {
   category: string;
 };
 
-type Screen = 'login' | 'club' | 'event' | 'editEvent' | 'clubs' | 'events';
+type Screen = 'login' | 'club' | 'event' | 'clubs' | 'calendar';
 
 async function readResponse(response: Response) {
   const data = await response.json();
@@ -194,7 +195,12 @@ function AppScreens() {
 
   return (
     <View style={styles.flex}>
-      <View style={styles.navigation}>
+      <ScrollView
+        horizontal
+        style={styles.navigationContainer}
+        contentContainerStyle={styles.navigation}
+        showsHorizontalScrollIndicator={false}
+      >
         <TouchableOpacity
           style={[
             styles.navButton,
@@ -283,20 +289,20 @@ function AppScreens() {
         <TouchableOpacity
           style={[
             styles.navButton,
-            screen === 'events' && styles.activeButton,
+            screen === 'calendar' && styles.activeButton,
           ]}
-          onPress={() => setScreen('events')}
+          onPress={() => setScreen('calendar')}
         >
           <Text
             style={[
               styles.navText,
-              screen === 'events' && styles.activeText,
+              screen === 'calendar' && styles.activeText,
             ]}
           >
-            Events
+            Calendar
           </Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
 
       <View style={styles.flex}>
         {screen === 'login'
@@ -313,9 +319,9 @@ function AppScreens() {
             ? <CreateClubScreen />
             : screen === 'clubs'
               ? <ClubsScreen />
-              : screen === 'events'
-                ? <EventsScreen />
-                : renderEventScreen()}
+              : screen === 'calendar'
+                ? <CalendarScreen />
+              : renderEventScreen()}
       </View>
     </View>
   );
@@ -330,6 +336,9 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 10,
     backgroundColor: '#ffffff',
+  },
+  navigationContainer: {
+    flexGrow: 0,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },

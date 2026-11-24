@@ -27,6 +27,12 @@ function bodyField(req: Request, name: string): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
+/** A string field of the query string, or undefined when missing or repeated. */
+function queryField(req: Request, name: string): string | undefined {
+  const value: unknown = req.query[name];
+  return typeof value === 'string' ? value : undefined;
+}
+
 /** HTTP status of each followClub error. */
 const FOLLOW_CLUB_STATUS: Record<FollowClubError, number> = {
   [FOLLOW_CLUB_ERRORS.loginRequired]: 401,
@@ -141,6 +147,22 @@ export function createApp(prisma: PrismaClient, sessions = new SessionStore()) {
     }
 
     res.json({ clubIds: result.clubIds });
+  });
+
+  // ID_019 View Upcoming Events Calendar
+  app.get('/events/calendar', async (req, res) => {
+    const result = await getCalendar(
+      { actorId: actorId(req), from: queryField(req, 'from'), to: queryField(req, 'to') },
+      prisma,
+    );
+
+    if (!result.success) {
+      res.status(result.message === 'Login required' ? 401 : 400)
+        .json({ message: result.message });
+      return;
+    }
+
+    res.json({ events: result.events });
   });
 
   // ID_011 Follow Club: following an already followed club is not an error
