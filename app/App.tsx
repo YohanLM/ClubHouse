@@ -29,7 +29,7 @@ type Club = {
   category: string;
 };
 
-type Screen = 'login' | 'club' | 'event' | 'clubs' | 'calendar';
+type Screen = 'login' | 'club' | 'event' | 'clubs' | 'calendar' | 'editEvent' | 'events';
 
 async function readResponse(response: Response) {
   const data = await response.json();
@@ -302,6 +302,14 @@ function AppScreens() {
             Calendar
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.navButton, screen === 'events' && styles.activeButton]}
+          onPress={() => setScreen('events')}
+        >
+          <Text style={[styles.navText, screen === 'events' && styles.activeText]}>
+            Events
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
       <View style={styles.flex}>
@@ -321,6 +329,8 @@ function AppScreens() {
               ? <ClubsScreen />
               : screen === 'calendar'
                 ? <CalendarScreen />
+              : screen === 'events'
+                ? <EventsScreen />
               : renderEventScreen()}
       </View>
     </View>
