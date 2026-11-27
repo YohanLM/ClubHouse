@@ -48,6 +48,7 @@ npm run api
 - `POST /login` with `{ "email", "password" }` returns `{ token, session }`. Send the token in an `Authorization: Bearer <token>` header in the next requests.
 - `GET /clubs` returns `{ clubs }` (active clubs in alphabetical order), or `401 { message: "Login required" }`.
 - `POST /clubs/:clubId/follow` follows the club and returns `{ message, clubId, followerCount }` (`Club followed`, or `Club already followed` when it was already followed). Errors: `401 Login required`, `404 Club not found`, `400 Club is inactive`.
+- `POST /events/:eventId/cancel` with an optional `{ "reason" }` cancels a scheduled event of the logged-in Club Owner and returns `{ message, event }`. Errors: `401 Login required`, `403 Unauthorized user`, `404 Event not found`, and `400` for an event that is not scheduled or an invalid reason.
 - `GET /follows` returns `{ clubIds }`, the ids of the clubs the logged-in user follows.
 - `GET /events/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD` returns upcoming scheduled events in chronological order. Both date parameters are optional, and `to` is inclusive.
 - Errors are returned as `{ message }` with a 4xx status, using the messages of the feature files.

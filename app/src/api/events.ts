@@ -33,3 +33,12 @@ export function updateEvent(token: string | null, eventId: number, changes: Even
     body: changes,
   });
 }
+
+/** ID_017 (T071): cancels the event; a blank reason is sent as none. */
+export function cancelEvent(token: string | null, eventId: number, reason: string) {
+  return apiRequest<{ message: string }>(`/events/${eventId}/cancel`, {
+    method: 'POST',
+    token,
+    body: { reason: reason.trim() || null },
+  });
+}
