@@ -51,6 +51,7 @@ model Club {
   id        Int        @id @default(autoincrement())
   name      String     @unique
   category  String
+  description String?
   status    ClubStatus @default(ACTIVE)
   ownerId   Int
   createdAt DateTime   @default(now())

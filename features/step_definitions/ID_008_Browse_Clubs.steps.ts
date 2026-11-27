@@ -18,21 +18,33 @@ type BrowseClubsWorld = ClubHouseWorld & {
 
 // ---------- Background ----------
 
+
 Given('the following clubs exist:', async function (table: DataTable) {
-  // Every club needs an owner; the scenarios do not care which one.
-  const owner = await upsertAccount({ email: 'club.owner@mcgill.ca', role: 'CLUB_OWNER' });
+  const defaultOwner = await upsertAccount({
+    email: 'club.owner@mcgill.ca',
+    role: 'CLUB_OWNER',
+  });
 
   for (const row of table.hashes()) {
+    const owner = row.Owner
+      ? await upsertAccount({
+          email: row.Owner,
+          role: 'CLUB_OWNER',
+        })
+      : defaultOwner;
+
     await prisma.club.create({
       data: {
         name: row.ClubName,
         category: row.Category,
+        description: row.Description || null,
         status: row.Status.toUpperCase() as ClubStatus,
         ownerId: owner.id,
       },
     });
   }
 });
+
 
 // ---------- When ----------
 
