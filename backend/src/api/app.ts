@@ -12,6 +12,7 @@ import { FOLLOW_CLUB_ERRORS, followClub, type FollowClubError } from '../service
 import { listFollowedClubs } from '../services/listFollowedClubs';
 import { getCalendar } from '../services/getCalendar';
 import { createEvent } from '../services/createEvent';
+import { CANCEL_EVENT_ERRORS, cancelEvent, type CancelEventError } from '../services/cancelEvent';
 import { EDIT_EVENT_ERRORS, editEvent, type EditEventError } from '../services/editEvent';
 import { listOwnedEvents } from '../services/listOwnedEvents';
 import {
@@ -47,6 +48,12 @@ const EDIT_EVENT_STATUS: Partial<Record<EditEventError, number>> = {
 };
 
 const EDITABLE_EVENT_FIELDS = ['title', 'category', 'date', 'startTime', 'endTime', 'location'] as const;
+
+/** HTTP status of the cancelEvent errors that are not state or input errors (400). */
+const CANCEL_EVENT_STATUS: Partial<Record<CancelEventError, number>> = {
+  [CANCEL_EVENT_ERRORS.unauthorized]: 403,
+  [CANCEL_EVENT_ERRORS.eventNotFound]: 404,
+};
 
 const RSVP_TO_EVENT_STATUS: Record<RsvpToEventError, number> = {
   [RSVP_TO_EVENT_ERRORS.loginRequired]: 401,
@@ -328,6 +335,42 @@ export function createApp(prisma: PrismaClient, sessions = new SessionStore()) {
 
     if (!result.success) {
       res.status(EDIT_EVENT_STATUS[result.message] ?? 400).json({ message: result.message });
+      return;
+    }
+
+    res.json({ message: result.message, event: result.event });
+  });
+
+  // ID_017 Cancel Event (T071): the reason is optional
+  app.post('/events/:eventId/cancel', async (req, res) => {
+    const userId = actorId(req);
+
+    if (userId === null) {
+      res.status(401).json({ message: 'Login required' });
+      return;
+    }
+
+    const eventIdParam = String(req.params.eventId);
+
+    if (!/^[1-9]\d*$/.test(eventIdParam) || !Number.isSafeInteger(Number(eventIdParam))) {
+      res.status(404).json({ message: CANCEL_EVENT_ERRORS.eventNotFound });
+      return;
+    }
+
+    const reason: unknown = req.body?.reason;
+
+    if (reason !== undefined && reason !== null && typeof reason !== 'string') {
+      res.status(400).json({ message: 'Cancellation reason must be text' });
+      return;
+    }
+
+    const result = await cancelEvent(
+      { actorId: userId, eventId: Number(eventIdParam), reason: reason ?? null },
+      prisma,
+    );
+
+    if (!result.success) {
+      res.status(CANCEL_EVENT_STATUS[result.message] ?? 400).json({ message: result.message });
       return;
     }
 
